@@ -64,10 +64,10 @@ webskim uses [Jina AI](https://jina.ai) APIs under the hood — you need a **Jin
 ## How It Works
 
 ```
-Agent: jina_search("react server components")
+Agent: webskim_search("react server components")
   → 5 results: title, URL, snippet (minimal tokens)
 
-Agent: jina_read("https://react.dev/reference/rsc/server-components")
+Agent: webskim_read("https://react.dev/reference/rsc/server-components")
   → Saved: .ai_pages/20260220_143052_react_dev__reference__rsc.md
   → Lines: 342 | ~2800 tokens
   → Table of Contents:
@@ -87,10 +87,10 @@ No full pages in context. No wasted tokens. The agent decides what to read.
 
 | Tool | What it does |
 |------|-------------|
-| `jina_search` | Web search → titles, URLs, snippets |
-| `jina_read` | Fetch URL/PDF → save as markdown, return TOC |
+| `webskim_search` | Web search → titles, URLs, snippets |
+| `webskim_read` | Fetch URL/PDF → save as markdown, return TOC |
 
-### jina_search
+### webskim_search
 
 | Param | Description |
 |-------|-------------|
@@ -99,7 +99,7 @@ No full pages in context. No wasted tokens. The agent decides what to read.
 | `site` | Restrict to domain, e.g. `"python.org"` |
 | `country` | Locale code, e.g. `"US"`, `"PL"` |
 
-### jina_read
+### webskim_read
 
 | Param | Description |
 |-------|-------------|
@@ -134,10 +134,10 @@ Add this to your project's `CLAUDE.md` so your agent always prefers webskim over
 ## Web Research
 
 Always use Jina MCP tools for web operations:
-- `jina_search` instead of `WebSearch`
-- `jina_read` instead of `WebFetch`
+- `webskim_search` instead of `WebSearch`
+- `webskim_read` instead of `WebFetch`
 
-Workflow: search → read URL to disk → Read file with offset/limit.
+Workflow: webskim_search → webskim_read URL to disk → Read file with offset/limit.
 WebSearch/WebFetch are fallback only.
 ```
 

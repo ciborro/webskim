@@ -6,7 +6,7 @@ import { generateToc } from "../services/toc-generator.js";
 
 export function registerReadTool(server: McpServer, client: JinaClient, fileManager: FileManager) {
   server.tool(
-    "jina_read",
+    "webskim_read",
     "Read a web page or PDF from URL, save as markdown to disk, and return file path with table of contents. Use the Read tool on the returned file_path to view content — you control how much to read via offset/limit.",
     {
       url: z.string().url().describe("URL of web page or PDF to read"),

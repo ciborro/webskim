@@ -4,8 +4,8 @@ import { JinaClient } from "../services/jina-client.js";
 
 export function registerSearchTool(server: McpServer, client: JinaClient) {
   server.tool(
-    "jina_search",
-    "Search the web using Jina Search API. Returns lightweight results (title, URL, snippet) without full page content. Use jina_read on interesting URLs to get full content saved to disk.",
+    "webskim_search",
+    "Search the web using Jina Search API. Returns lightweight results (title, URL, snippet) without full page content. Use webskim_read on interesting URLs to get full content saved to disk.",
     {
       query: z.string().describe("Search query"),
       num_results: z.number().min(1).max(10).default(5).describe("Number of results (1-10, default 5)"),
