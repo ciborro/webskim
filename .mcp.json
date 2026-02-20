@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "jina": {
+      "command": "node",
+      "args": ["dist/index.js"],
+      "cwd": "/home/ciborro/dev/jina"
+    }
+  }
+}
