@@ -1,9 +1,11 @@
 {
   "mcpServers": {
-    "jina": {
-      "command": "node",
-      "args": ["dist/index.js"],
-      "cwd": "/home/ciborro/dev/jina"
+    "webskim": {
+      "command": "npx",
+      "args": ["-y", "webskim"],
+      "env": {
+        "JINA_API_KEY": "${JINA_API_KEY}"
+      }
     }
   }
 }

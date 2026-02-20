@@ -22,7 +22,16 @@
       "Bash(npm test:*)",
       "Bash(npx vitest:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git -C /home/ciborro/dev/jina log --oneline)",
+      "mcp__webskim__jina_search",
+      "mcp__webskim__jina_read",
+      "Bash(npm search:*)",
+      "Bash(npm view:*)",
+      "Bash(npm outdated:*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "webskim"
+  ]
 }
