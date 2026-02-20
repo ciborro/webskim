@@ -16,8 +16,8 @@ export function registerSearchTool(server: McpServer, client: JinaClient) {
       try {
         const results = await client.search(query, {
           num_results,
-          site: site ?? undefined,
-          country: country ?? undefined,
+          site,
+          country,
         });
 
         const formatted = results

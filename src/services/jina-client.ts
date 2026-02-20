@@ -13,6 +13,7 @@ export interface SearchOptions {
 export interface ReadOptions {
   target_selector?: string;
   remove_selector?: string;
+  max_tokens?: number;
 }
 
 export interface ReadResult {
@@ -36,6 +37,7 @@ export class JinaClient {
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.apiKey}`,
       Accept: "application/json",
+      "Content-Type": "application/json",
       "X-Return-Format": "markdown",
     };
 
@@ -73,6 +75,7 @@ export class JinaClient {
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.apiKey}`,
       Accept: "application/json",
+      "Content-Type": "application/json",
       "X-Return-Format": "markdown",
     };
 
@@ -81,6 +84,9 @@ export class JinaClient {
     }
     if (options.remove_selector) {
       headers["X-Remove-Selector"] = options.remove_selector;
+    }
+    if (options.max_tokens) {
+      headers["X-Token-Budget"] = String(options.max_tokens);
     }
 
     const response = await fetch("https://r.jina.ai/", {
@@ -98,7 +104,7 @@ export class JinaClient {
   }
 
   async segment(content: string): Promise<SegmentResult> {
-    const response = await fetch("https://api.jina.ai/v1/segment", {
+    const response = await fetch("https://segment.jina.ai/", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.apiKey}`,

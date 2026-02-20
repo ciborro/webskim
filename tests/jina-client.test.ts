@@ -32,6 +32,7 @@ describe("JinaClient", () => {
         headers: {
           Authorization: "Bearer test-api-key",
           Accept: "application/json",
+          "Content-Type": "application/json",
           "X-Return-Format": "markdown",
         },
         body: JSON.stringify({ q: "test query", num: 2 }),
@@ -84,6 +85,7 @@ describe("JinaClient", () => {
         headers: {
           Authorization: "Bearer test-api-key",
           Accept: "application/json",
+          "Content-Type": "application/json",
           "X-Return-Format": "markdown",
         },
         body: JSON.stringify({ url: "https://example.com" }),
@@ -120,7 +122,7 @@ describe("JinaClient", () => {
 
       const result = await client.segment("Some long text here");
 
-      expect(mockFetch).toHaveBeenCalledWith("https://api.jina.ai/v1/segment", {
+      expect(mockFetch).toHaveBeenCalledWith("https://segment.jina.ai/", {
         method: "POST",
         headers: {
           Authorization: "Bearer test-api-key",

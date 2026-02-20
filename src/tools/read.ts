@@ -20,39 +20,23 @@ export function registerReadTool(server: McpServer, client: JinaClient, fileMana
         const { title, content } = await client.read(url, {
           target_selector: target_selector ?? undefined,
           remove_selector: remove_selector ?? undefined,
+          max_tokens: max_tokens ?? undefined,
         });
 
-        // 2. Optionally truncate by token count
-        let finalContent = content;
-        if (max_tokens) {
-          const segResult = await client.segment(content);
-          if (segResult.num_tokens > max_tokens) {
-            // Use chunks to approximate token boundary
-            let tokenCount = 0;
-            const keptChunks: string[] = [];
-            for (const chunk of segResult.chunks) {
-              const chunkSegment = await client.segment(chunk);
-              if (tokenCount + chunkSegment.num_tokens > max_tokens) break;
-              tokenCount += chunkSegment.num_tokens;
-              keptChunks.push(chunk);
-            }
-            finalContent = keptChunks.join("\n\n") + "\n\n[... truncated at ~" + max_tokens + " tokens]";
-          }
-        }
+        // 2. Save to disk
+        const filePath = await fileManager.savePage(content, url);
 
-        // 3. Save to disk
-        const filePath = await fileManager.savePage(finalContent, url);
+        // 3. Generate TOC and count lines/estimate tokens
+        const toc = generateToc(content);
+        const totalLines = content.split("\n").length;
+        // Rough estimate: ~4 chars per token for English text
+        const estimatedTokens = Math.round(content.length / 4);
 
-        // 4. Generate TOC and count lines/tokens
-        const toc = generateToc(finalContent);
-        const totalLines = finalContent.split("\n").length;
-        const segInfo = await client.segment(finalContent);
-
-        // 5. Return metadata
+        // 4. Return metadata
         const response = [
           `**${title}**`,
           `File: ${filePath}`,
-          `Lines: ${totalLines} | Tokens: ${segInfo.num_tokens}`,
+          `Lines: ${totalLines} | ~${estimatedTokens} tokens (estimate)`,
           "",
           toc ? `**Table of Contents:**\n${toc}` : "(no headings found)",
           "",
