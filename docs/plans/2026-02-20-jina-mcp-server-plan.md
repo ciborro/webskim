@@ -1,12 +1,12 @@
-# Jina MCP Server Implementation Plan
+# webskim — Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Build an MCP server that replaces WebSearch/WebFetch with Jina.ai APIs, saving pages to disk so the agent controls token consumption.
 
-**Architecture:** Two MCP tools (jina_search, jina_read) backed by three Jina APIs (Search, Reader, Segmenter). Reader saves pages to `.ai_pages/` as markdown files; agent uses built-in `Read` tool to browse them selectively. Segmenter generates TOC with line numbers so agent knows where to look.
+**Architecture:** Two MCP tools (webskim_search, webskim_read) backed by three Jina APIs (Search, Reader, Segmenter). Reader saves pages to `.ai_pages/` as markdown files; agent uses built-in `Read` tool to browse them selectively. Segmenter generates TOC with line numbers so agent knows where to look.
 
-**Tech Stack:** TypeScript, @modelcontextprotocol/sdk, zod, dotenv, vitest
+**Tech Stack:** TypeScript, @modelcontextprotocol/sdk, zod, vitest
 
 **Design doc:** `docs/plans/2026-02-20-jina-mcp-server-design.md`
 
@@ -24,7 +24,7 @@
 ```bash
 cd /home/ciborro/dev/jina
 npm init -y
-npm install @modelcontextprotocol/sdk zod dotenv
+npm install @modelcontextprotocol/sdk zod
 npm install -D typescript @types/node vitest
 ```
 
@@ -42,7 +42,7 @@ Edit `package.json` to set:
     "test:watch": "vitest"
   },
   "bin": {
-    "jina-mcp": "dist/index.js"
+    "webskim": "dist/index.js"
   }
 }
 ```
@@ -86,7 +86,7 @@ mkdir -p src/tools src/services tests
 ```bash
 git init
 git add package.json package-lock.json tsconfig.json .gitignore
-git commit -m "chore: project scaffolding with MCP SDK, zod, dotenv"
+git commit -m "chore: project scaffolding with MCP SDK, zod"
 ```
 
 ---
@@ -629,12 +629,12 @@ git commit -m "feat: add FileManager for saving pages to .ai_pages/"
 
 ---
 
-### Task 5: jina_search Tool
+### Task 5: webskim_search Tool
 
 **Files:**
 - Create: `src/tools/search.ts`
 
-**Step 1: Implement jina_search tool registration**
+**Step 1: Implement webskim_search tool registration**
 
 ```typescript
 // src/tools/search.ts
@@ -644,8 +644,8 @@ import { JinaClient } from "../services/jina-client.js";
 
 export function registerSearchTool(server: McpServer, client: JinaClient) {
   server.tool(
-    "jina_search",
-    "Search the web using Jina Search API. Returns lightweight results (title, URL, snippet) without full page content. Use jina_read on interesting URLs to get full content saved to disk.",
+    "webskim_search",
+    "Search the web using Jina Search API. Returns lightweight results (title, URL, snippet) without full page content. Use webskim_read on interesting URLs to get full content saved to disk.",
     {
       query: z.string().describe("Search query"),
       num_results: z.number().min(1).max(10).default(5).describe("Number of results (1-10, default 5)"),
@@ -699,17 +699,17 @@ Expected: No errors
 
 ```bash
 git add src/tools/search.ts
-git commit -m "feat: add jina_search MCP tool"
+git commit -m "feat: add webskim_search MCP tool"
 ```
 
 ---
 
-### Task 6: jina_read Tool
+### Task 6: webskim_read Tool
 
 **Files:**
 - Create: `src/tools/read.ts`
 
-**Step 1: Implement jina_read tool registration**
+**Step 1: Implement webskim_read tool registration**
 
 ```typescript
 // src/tools/read.ts
@@ -721,7 +721,7 @@ import { generateToc } from "../services/toc-generator.js";
 
 export function registerReadTool(server: McpServer, client: JinaClient, fileManager: FileManager) {
   server.tool(
-    "jina_read",
+    "webskim_read",
     "Read a web page or PDF from URL, save as markdown to disk, and return file path with table of contents. Use the Read tool on the returned file_path to view content — you control how much to read via offset/limit.",
     {
       url: z.string().url().describe("URL of web page or PDF to read"),
@@ -803,7 +803,7 @@ Expected: No errors
 
 ```bash
 git add src/tools/read.ts
-git commit -m "feat: add jina_read MCP tool with disk save and TOC"
+git commit -m "feat: add webskim_read MCP tool with disk save and TOC"
 ```
 
 ---
@@ -818,7 +818,6 @@ git commit -m "feat: add jina_read MCP tool with disk save and TOC"
 ```typescript
 #!/usr/bin/env node
 // src/index.ts
-import dotenv from "dotenv";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { JinaClient } from "./services/jina-client.js";
@@ -827,18 +826,15 @@ import { registerSearchTool } from "./tools/search.js";
 import { registerReadTool } from "./tools/read.js";
 import { join } from "node:path";
 
-// Load .env from server's directory
-dotenv.config();
-
 const JINA_API_KEY = process.env.JINA_API_KEY;
 if (!JINA_API_KEY) {
-  console.error("FATAL: JINA_API_KEY environment variable is required. Set it in .env or pass via environment.");
+  console.error("FATAL: JINA_API_KEY is required. Pass it via env in your MCP config.");
   process.exit(1);
 }
 
 const server = new McpServer({
-  name: "jina-mcp",
-  version: "1.0.0",
+  name: "webskim",
+  version: "1.1.0",
 });
 
 const client = new JinaClient(JINA_API_KEY);
@@ -850,7 +846,7 @@ registerReadTool(server, client, fileManager);
 const transport = new StdioServerTransport();
 await server.connect(transport);
 
-console.error("jina-mcp server started");
+console.error("webskim server started");
 ```
 
 **Step 2: Build the project**
@@ -892,34 +888,21 @@ Expected: JSON-RPC response with server capabilities including the two tools.
 echo -e '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}\n{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' | node dist/index.js
 ```
 
-Expected: Response listing `jina_search` and `jina_read` tools with their schemas.
+Expected: Response listing `webskim_search` and `webskim_read` tools with their schemas.
 
 **Step 3: Configure in Claude Code**
 
-Add to `~/.claude/settings.json` (or project `.claude/settings.local.json`):
+Add to project `.mcp.json`:
 
 ```json
 {
   "mcpServers": {
-    "jina": {
-      "command": "node",
-      "args": ["/home/ciborro/dev/jina/dist/index.js"],
+    "webskim": {
+      "command": "npx",
+      "args": ["-y", "webskim"],
       "env": {
-        "JINA_API_KEY": "<from .env>"
+        "JINA_API_KEY": "jina_..."
       }
-    }
-  }
-}
-```
-
-Alternatively, if dotenv works with cwd:
-```json
-{
-  "mcpServers": {
-    "jina": {
-      "command": "node",
-      "args": ["/home/ciborro/dev/jina/dist/index.js"],
-      "cwd": "/home/ciborro/dev/jina"
     }
   }
 }
@@ -928,8 +911,8 @@ Alternatively, if dotenv works with cwd:
 **Step 4: Test in Claude Code**
 
 Start a new Claude Code session and verify:
-1. `jina_search` appears in tool list
-2. `jina_read` appears in tool list
+1. `webskim_search` appears in tool list
+2. `webskim_read` appears in tool list
 3. Search returns results
 4. Read saves file and returns TOC
 
@@ -937,5 +920,5 @@ Start a new Claude Code session and verify:
 
 ```bash
 git add -A
-git commit -m "chore: complete jina-mcp server v1.0.0"
+git commit -m "chore: complete webskim server v1.1.0"
 ```

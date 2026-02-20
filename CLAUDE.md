@@ -2,12 +2,12 @@
 
 ## Web Research
 
-Always use Jina MCP tools as the primary choice for all web operations:
+Always use webskim MCP tools as the primary choice for all web operations:
 
 - **`webskim_search`** instead of `WebSearch` — returns lightweight snippets (title, URL, description)
 - **`webskim_read`** instead of `WebFetch` — saves page to disk as markdown, returns file path + TOC with line numbers
 
-Use `WebSearch` and `WebFetch` only as fallback when Jina MCP tools are unavailable or fail.
+Use `WebSearch` and `WebFetch` only as fallback when webskim MCP tools are unavailable or fail.
 
 ### Workflow
 

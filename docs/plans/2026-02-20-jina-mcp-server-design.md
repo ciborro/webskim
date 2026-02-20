@@ -1,29 +1,29 @@
-# Jina MCP Server — Design Document
+# webskim — Design Document
 
 ## Goal
 
-MCP server for Claude Code that replaces WebSearch and WebFetch with Jina.ai APIs.
+MCP server for AI agents that replaces WebSearch and WebFetch with Jina.ai APIs.
 Key advantage: pages saved to disk so the agent controls how many tokens it reads.
 
 ## Architecture
 
 ```
-Claude Code agent
+AI agent (Claude Code, Cursor, etc.)
   |
-  +-- jina_search("query") -> snippets + URLs
+  +-- webskim_search("query") -> snippets + URLs
   |     \-- Jina Search API (s.jina.ai)
   |
-  +-- jina_read("url", opts) -> saves to .ai_pages/, returns path + TOC
+  +-- webskim_read("url", opts) -> saves to .ai_pages/, returns path + TOC
   |     +-- Jina Reader API (r.jina.ai) -> markdown
   |     \-- Jina Segmenter API -> TOC with line numbers
   |
   \-- Read(".ai_pages/20260220_143052_docs_python_org__tutorial.md", offset, limit)
-        \-- built-in Claude Code tool — agent reads as much as it needs
+        \-- built-in agent tool — agent reads as much as it needs
 ```
 
 ## Tools
 
-### jina_search
+### webskim_search
 
 Searches the web, returns lightweight results.
 
@@ -35,7 +35,7 @@ Searches the web, returns lightweight results.
 
 **Returns:** Array of `{ title, url, snippet }`.
 
-### jina_read
+### webskim_read
 
 Reads a web page or PDF from URL, saves to disk, returns metadata.
 
@@ -68,18 +68,17 @@ Directory: `.ai_pages/` (hidden, gitignored)
 ## Project Structure
 
 ```
-jina/
+webskim/
   src/
     index.ts           # MCP server, tool registration, stdio transport
     tools/
-      search.ts        # jina_search tool
-      read.ts          # jina_read tool
+      search.ts        # webskim_search tool
+      read.ts          # webskim_read tool
     services/
       jina-client.ts   # HTTP client for Jina APIs (Reader, Search, Segmenter)
       file-manager.ts  # save to .ai_pages/, file naming
       toc-generator.ts # generate TOC with line numbers from markdown
   .ai_pages/           # saved pages (gitignored)
-  .env                 # JINA_API_KEY
   package.json
   tsconfig.json
 ```
@@ -94,12 +93,12 @@ jina/
 
 ## Key Decisions
 
-- **Transport:** stdio (local, for Claude Code)
+- **Transport:** stdio (local, for Claude Code / Cursor / etc.)
 - **Output format:** markdown only (optimal for LLM)
 - **Token control:** max_tokens parameter uses Segmenter to truncate; CSS selectors for precision
 - **PDF support:** automatic — Reader detects and converts PDFs to markdown
 - **No page management tools** — user cleans up manually
-- **Auth:** JINA_API_KEY from .env via dotenv, validated at startup
+- **Auth:** JINA_API_KEY passed via env in MCP config, validated at startup
 
 ## Error Handling
 
