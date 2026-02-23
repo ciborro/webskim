@@ -112,7 +112,7 @@ No full pages in context. No wasted tokens. The agent decides what to read.
 
 **Context efficiency** — pages saved to `.ai_pages/` on disk, not dumped into context. Agent reads sections via offset/limit.
 
-**Tiny footprint** — ~190 tokens per tool definition in system prompt. Minimal overhead vs. built-in alternatives.
+**Tiny footprint** — ~230 tokens per tool definition in system prompt. Minimal overhead vs. built-in alternatives.
 
 **Smart search** — returns snippets, not full pages. Agent picks which URLs are worth reading.
 
@@ -128,17 +128,17 @@ No full pages in context. No wasted tokens. The agent decides what to read.
 
 ## Make It the Default
 
-Add this to your project's `CLAUDE.md` so your agent always prefers webskim over built-in tools:
+The tool descriptions already tell the agent to prefer webskim, but for maximum reliability add this to your project's `CLAUDE.md`:
 
 ```markdown
 ## Web Research
 
-Always use Jina MCP tools for web operations:
-- `webskim_search` instead of `WebSearch`
-- `webskim_read` instead of `WebFetch`
+Always use webskim MCP tools as the primary choice for all web operations:
+- **`webskim_search`** instead of `WebSearch` — returns lightweight snippets (title, URL, description)
+- **`webskim_read`** instead of `WebFetch` — saves page to disk as markdown, returns file path + TOC
 
 Workflow: webskim_search → webskim_read URL to disk → Read file with offset/limit.
-WebSearch/WebFetch are fallback only.
+Use WebSearch/WebFetch only as fallback when webskim tools are unavailable or fail.
 ```
 
 Add `.ai_pages/` to your `.gitignore`.
