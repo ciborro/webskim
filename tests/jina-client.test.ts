@@ -143,44 +143,4 @@ describe("JinaClient", () => {
       );
     });
   });
-
-  describe("segment", () => {
-    it("calls segmenter API and returns token count and chunks", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          num_tokens: 150,
-          chunks: ["First chunk.", "Second chunk."],
-        }),
-      });
-
-      const result = await client.segment("Some long text here");
-
-      expect(mockFetch).toHaveBeenCalledWith("https://segment.jina.ai/", expect.objectContaining({
-        method: "POST",
-        headers: {
-          Authorization: "Bearer test-api-key",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content: "Some long text here",
-          tokenizer: "cl100k_base",
-          return_tokens: false,
-          return_chunks: true,
-        }),
-      }));
-      expect(result).toEqual({ num_tokens: 150, chunks: ["First chunk.", "Second chunk."] });
-    });
-
-    it("throws descriptive error when response has unexpected shape", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ data: "unexpected" }),
-      });
-
-      await expect(client.segment("text")).rejects.toThrow(
-        "Unexpected Jina Segmenter API response"
-      );
-    });
-  });
 });

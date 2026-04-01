@@ -21,11 +21,6 @@ export interface ReadResult {
   content: string;
 }
 
-export interface SegmentResult {
-  num_tokens: number;
-  chunks: string[];
-}
-
 export class JinaClient {
   private apiKey: string;
   private readonly timeoutMs = 30000;
@@ -116,31 +111,5 @@ export class JinaClient {
       throw new Error(`Unexpected Jina Reader API response: missing 'data.title' or 'data.content'`);
     }
     return { title: json.data.title, content: json.data.content };
-  }
-
-  async segment(content: string): Promise<SegmentResult> {
-    const response = await this.fetchWithTimeout("https://segment.jina.ai/", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        content,
-        tokenizer: "cl100k_base",
-        return_tokens: false,
-        return_chunks: true,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Jina Segmenter API error: ${response.status} ${response.statusText}`);
-    }
-
-    const json = await response.json();
-    if (typeof json.num_tokens !== "number" || !Array.isArray(json.chunks)) {
-      throw new Error(`Unexpected Jina Segmenter API response: missing 'num_tokens' or 'chunks'`);
-    }
-    return { num_tokens: json.num_tokens, chunks: json.chunks };
   }
 }
