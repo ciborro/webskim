@@ -51,4 +51,20 @@ describe("generateToc", () => {
       ].join("\n")
     );
   });
+
+  it("ignores headings inside tilde-fenced code blocks", () => {
+    const markdown = [
+      "# Real Heading",
+      "",
+      "~~~",
+      "# Fake heading in tilde block",
+      "~~~",
+      "",
+      "## Another Real Heading",
+    ].join("\n");
+
+    expect(generateToc(markdown)).toBe(
+      ["L1: # Real Heading", "L7: ## Another Real Heading"].join("\n")
+    );
+  });
 });

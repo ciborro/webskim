@@ -6,7 +6,7 @@ export function generateToc(markdown: string): string {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    if (line.startsWith("```")) {
+    if (line.startsWith("```") || line.startsWith("~~~")) {
       inCodeBlock = !inCodeBlock;
       continue;
     }
