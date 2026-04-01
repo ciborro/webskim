@@ -18,9 +18,9 @@ export function registerReadTool(server: McpServer, client: JinaClient, fileMana
       try {
         // 1. Fetch page content via Jina Reader
         const { title, content } = await client.read(url, {
-          target_selector: target_selector ?? undefined,
-          remove_selector: remove_selector ?? undefined,
-          max_tokens: max_tokens ?? undefined,
+          target_selector,
+          remove_selector,
+          max_tokens,
         });
 
         // 2. Save to disk
