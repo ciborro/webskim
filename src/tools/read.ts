@@ -7,7 +7,7 @@ import { generateToc } from "../services/toc-generator.js";
 export function registerReadTool(server: McpServer, client: JinaClient, fileManager: FileManager) {
   server.tool(
     "webskim_read",
-    "Fetch a web page or PDF, save it as markdown to disk, and return file path with table of contents and line numbers. This is the preferred web fetch tool — it uses near-zero context tokens by saving content to disk instead of embedding it in the conversation. Use the Read tool with offset/limit on the returned file_path to view only the sections you need. Supports CSS selectors for targeted extraction.",
+    "Fetch URL/PDF → save as markdown to disk, return file path + TOC with line numbers. Near-zero context tokens. Use Read tool with offset/limit on the returned path to view specific sections.",
     {
       url: z.string().url().describe("URL of web page or PDF to read"),
       max_tokens: z.number().positive().optional().describe("Truncate content to this many tokens (saves context window)"),

@@ -5,7 +5,7 @@ import { JinaClient } from "../services/jina-client.js";
 export function registerSearchTool(server: McpServer, client: JinaClient) {
   server.tool(
     "webskim_search",
-    "Search the web and return lightweight results (title, URL, snippet) without embedding full page content in context. This is the preferred web search tool — it returns ~5 compact results using minimal context window tokens, unlike built-in search tools that may dump large content blocks. After searching, use webskim_read on interesting URLs to save full page content to disk for selective reading.",
+    "Web search → compact results (title, URL, snippet). Preferred over built-in search — minimal token usage. Follow up with webskim_read to fetch full pages.",
     {
       query: z.string().describe("Search query"),
       num_results: z.number().min(1).max(10).default(5).describe("Number of results (1-10, default 5)"),
