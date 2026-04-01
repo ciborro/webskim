@@ -41,7 +41,8 @@ export class FileManager {
     await mkdir(this.baseDir, { recursive: true });
     const filename = this.generateFilename(url);
     const filePath = join(this.baseDir, filename);
-    await writeFile(filePath, content, "utf-8");
+    const header = `<!-- Source: ${url} -->\n\n`;
+    await writeFile(filePath, header + content, "utf-8");
     return filePath;
   }
 }

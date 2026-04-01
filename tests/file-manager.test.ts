@@ -43,11 +43,13 @@ describe("FileManager", () => {
   });
 
   describe("savePage", () => {
-    it("creates directory if not exists and saves content", async () => {
+    it("saves content with source URL header", async () => {
       const filePath = await fm.savePage("# Hello\n\nContent", "https://example.com/test");
 
       expect(existsSync(filePath)).toBe(true);
-      expect(readFileSync(filePath, "utf-8")).toBe("# Hello\n\nContent");
+      const saved = readFileSync(filePath, "utf-8");
+      expect(saved).toContain("<!-- Source: https://example.com/test -->");
+      expect(saved).toContain("# Hello\n\nContent");
       expect(filePath).toContain(TEST_DIR);
       expect(filePath).toMatch(/example_com__test\.md$/);
     });
