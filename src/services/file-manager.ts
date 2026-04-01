@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 export class FileManager {
   private baseDir: string;
+  private lastTs: string = "";
 
   constructor(baseDir: string) {
     this.baseDir = baseDir;
@@ -22,10 +23,15 @@ export class FileManager {
     path = path.replace(/_+$/, "");
 
     const now = new Date();
-    const ts = now.toISOString()
-      .replace(/[-:T]/g, "")
-      .slice(0, 15)
-      .replace(/^(\d{8})(\d{6}).*/, "$1_$2");
+    const pad = (n: number, len = 2) => String(n).padStart(len, "0");
+    let ts = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}${pad(now.getMilliseconds(), 3)}`;
+
+    // Guarantee uniqueness: if timestamp matches last one, increment by 1ms
+    if (ts <= this.lastTs) {
+      const lastMs = parseInt(this.lastTs.slice(-3), 10);
+      ts = this.lastTs.slice(0, -3) + pad(lastMs + 1, 3);
+    }
+    this.lastTs = ts;
 
     const slug = path ? `${domain}__${path}` : domain;
     return `${ts}_${slug}.md`;
