@@ -64,6 +64,9 @@ export class JinaClient {
     }
 
     const json = await response.json();
+    if (!json.data || !Array.isArray(json.data)) {
+      throw new Error(`Unexpected Jina Search API response: missing or invalid 'data' array`);
+    }
     return json.data.map((item: { title: string; url: string; description: string }) => ({
       title: item.title,
       url: item.url,
@@ -100,6 +103,9 @@ export class JinaClient {
     }
 
     const json = await response.json();
+    if (!json.data || typeof json.data.title !== "string" || typeof json.data.content !== "string") {
+      throw new Error(`Unexpected Jina Reader API response: missing 'data.title' or 'data.content'`);
+    }
     return { title: json.data.title, content: json.data.content };
   }
 
@@ -123,6 +129,9 @@ export class JinaClient {
     }
 
     const json = await response.json();
+    if (typeof json.num_tokens !== "number" || !Array.isArray(json.chunks)) {
+      throw new Error(`Unexpected Jina Segmenter API response: missing 'num_tokens' or 'chunks'`);
+    }
     return { num_tokens: json.num_tokens, chunks: json.chunks };
   }
 }

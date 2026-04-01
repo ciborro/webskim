@@ -64,6 +64,17 @@ describe("JinaClient", () => {
 
       await expect(client.search("test")).rejects.toThrow("Jina Search API error: 429 Too Many Requests");
     });
+
+    it("throws descriptive error when response has no data field", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ results: [] }),
+      });
+
+      await expect(client.search("test")).rejects.toThrow(
+        "Unexpected Jina Search API response"
+      );
+    });
   });
 
   describe("read", () => {
@@ -108,6 +119,17 @@ describe("JinaClient", () => {
       expect(callArgs[1].headers["X-Target-Selector"]).toBe("main");
       expect(callArgs[1].headers["X-Remove-Selector"]).toBe("nav,.ads");
     });
+
+    it("throws descriptive error when response has no data field", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ result: "something" }),
+      });
+
+      await expect(client.read("https://example.com")).rejects.toThrow(
+        "Unexpected Jina Reader API response"
+      );
+    });
   });
 
   describe("segment", () => {
@@ -136,6 +158,17 @@ describe("JinaClient", () => {
         }),
       });
       expect(result).toEqual({ num_tokens: 150, chunks: ["First chunk.", "Second chunk."] });
+    });
+
+    it("throws descriptive error when response has unexpected shape", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: "unexpected" }),
+      });
+
+      await expect(client.segment("text")).rejects.toThrow(
+        "Unexpected Jina Segmenter API response"
+      );
     });
   });
 });
