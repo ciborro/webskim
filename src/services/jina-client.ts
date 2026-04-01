@@ -28,6 +28,15 @@ export interface SegmentResult {
 
 export class JinaClient {
   private apiKey: string;
+  private readonly timeoutMs = 30000;
+
+  private fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    return fetch(url, { ...init, signal: controller.signal }).finally(() =>
+      clearTimeout(timeout)
+    );
+  }
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -53,7 +62,7 @@ export class JinaClient {
       body.num = options.num_results;
     }
 
-    const response = await fetch("https://s.jina.ai/", {
+    const response = await this.fetchWithTimeout("https://s.jina.ai/", {
       method: "POST",
       headers,
       body: JSON.stringify(body),
@@ -92,7 +101,7 @@ export class JinaClient {
       headers["X-Token-Budget"] = String(options.max_tokens);
     }
 
-    const response = await fetch("https://r.jina.ai/", {
+    const response = await this.fetchWithTimeout("https://r.jina.ai/", {
       method: "POST",
       headers,
       body: JSON.stringify({ url }),
@@ -110,7 +119,7 @@ export class JinaClient {
   }
 
   async segment(content: string): Promise<SegmentResult> {
-    const response = await fetch("https://segment.jina.ai/", {
+    const response = await this.fetchWithTimeout("https://segment.jina.ai/", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.apiKey}`,

@@ -27,7 +27,7 @@ describe("JinaClient", () => {
 
       const results = await client.search("test query", { num_results: 2 });
 
-      expect(mockFetch).toHaveBeenCalledWith("https://s.jina.ai/", {
+      expect(mockFetch).toHaveBeenCalledWith("https://s.jina.ai/", expect.objectContaining({
         method: "POST",
         headers: {
           Authorization: "Bearer test-api-key",
@@ -36,7 +36,7 @@ describe("JinaClient", () => {
           "X-Return-Format": "markdown",
         },
         body: JSON.stringify({ q: "test query", num: 2 }),
-      });
+      }));
       expect(results).toEqual([
         { title: "Result 1", url: "https://example.com", snippet: "Snippet 1" },
         { title: "Result 2", url: "https://example.org", snippet: "Snippet 2" },
@@ -75,6 +75,18 @@ describe("JinaClient", () => {
         "Unexpected Jina Search API response"
       );
     });
+
+    it("aborts request after timeout", async () => {
+      mockFetch.mockImplementationOnce((_url: string, init: RequestInit) => {
+        return new Promise((_resolve, reject) => {
+          init.signal?.addEventListener("abort", () => {
+            reject(new DOMException("The operation was aborted.", "AbortError"));
+          });
+        });
+      });
+
+      await expect(client.search("test")).rejects.toThrow();
+    }, 35000);
   });
 
   describe("read", () => {
@@ -91,7 +103,7 @@ describe("JinaClient", () => {
 
       const result = await client.read("https://example.com");
 
-      expect(mockFetch).toHaveBeenCalledWith("https://r.jina.ai/", {
+      expect(mockFetch).toHaveBeenCalledWith("https://r.jina.ai/", expect.objectContaining({
         method: "POST",
         headers: {
           Authorization: "Bearer test-api-key",
@@ -100,7 +112,7 @@ describe("JinaClient", () => {
           "X-Return-Format": "markdown",
         },
         body: JSON.stringify({ url: "https://example.com" }),
-      });
+      }));
       expect(result).toEqual({ title: "Example Page", content: "# Hello\n\nWorld" });
     });
 
@@ -144,7 +156,7 @@ describe("JinaClient", () => {
 
       const result = await client.segment("Some long text here");
 
-      expect(mockFetch).toHaveBeenCalledWith("https://segment.jina.ai/", {
+      expect(mockFetch).toHaveBeenCalledWith("https://segment.jina.ai/", expect.objectContaining({
         method: "POST",
         headers: {
           Authorization: "Bearer test-api-key",
@@ -156,7 +168,7 @@ describe("JinaClient", () => {
           return_tokens: false,
           return_chunks: true,
         }),
-      });
+      }));
       expect(result).toEqual({ num_tokens: 150, chunks: ["First chunk.", "Second chunk."] });
     });
 
