@@ -63,6 +63,10 @@ describe("FileManager", () => {
       const name = fm.generateFilename(`https://example.com/${longPath}`);
       expect(name.length).toBeLessThanOrEqual(200);
     });
+
+    it("does not throw on malformed percent-encoding in URL path", () => {
+      expect(() => fm.generateFilename("https://example.com/%ZZ")).not.toThrow();
+    });
   });
 
   describe("savePage", () => {

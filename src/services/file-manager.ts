@@ -13,8 +13,16 @@ export class FileManager {
     const parsed = new URL(url);
     const domain = parsed.hostname.replace(/\./g, "_");
 
-    // Process pathname: strip leading slash, extension, and normalize
-    let path = decodeURIComponent(parsed.pathname)
+    // Process pathname: strip leading slash, extension, and normalize.
+    // new URL() accepts malformed percent sequences like /%ZZ that decodeURIComponent
+    // rejects; fall back to the raw pathname so generateFilename never throws URIError.
+    let rawPath: string;
+    try {
+      rawPath = decodeURIComponent(parsed.pathname);
+    } catch {
+      rawPath = parsed.pathname;
+    }
+    let path = rawPath
       .slice(1)                                 // remove leading /
       .replace(/\.[^.]+$/, "")                  // strip file extension
       .replace(/[<>:"|?*\x00-\x1f]/g, "_")      // Windows-reserved BEFORE slash replace
