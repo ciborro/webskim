@@ -67,4 +67,15 @@ describe("generateToc", () => {
       ["L1: # Real Heading", "L7: ## Another Real Heading"].join("\n")
     );
   });
+
+  it("matches headings with up to 3 spaces of indent and strips leading whitespace in output", () => {
+    expect(generateToc("   ## H\ntext")).toBe("L1: ## H");
+    expect(generateToc("  # H\ntext")).toBe("L1: # H");
+    expect(generateToc(" ### H")).toBe("L1: ### H");
+  });
+
+  it("rejects 4-space indent (code block) and leading tab", () => {
+    expect(generateToc("    ## H")).toBe("");
+    expect(generateToc("\t## H")).toBe("");
+  });
 });

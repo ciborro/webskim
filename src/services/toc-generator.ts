@@ -11,8 +11,8 @@ export function generateToc(markdown: string): string {
       continue;
     }
 
-    if (!inCodeBlock && /^#{1,6}\s/.test(line)) {
-      entries.push(`L${i + 1}: ${line}`);
+    if (!inCodeBlock && /^ {0,3}#{1,6}\s/.test(line)) {
+      entries.push(`L${i + 1}: ${line.trimStart()}`);
     }
   }
 
