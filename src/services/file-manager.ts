@@ -4,6 +4,7 @@ import { join } from "node:path";
 export class FileManager {
   private baseDir: string;
   private lastTs: string = "";
+  private collisionCounter = 0;
 
   constructor(baseDir: string) {
     this.baseDir = baseDir;
@@ -34,12 +35,16 @@ export class FileManager {
 
     const now = new Date();
     const pad = (n: number, len = 2) => String(n).padStart(len, "0");
-    let ts = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}${pad(now.getMilliseconds(), 3)}`;
+    const baseTs = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}${pad(now.getMilliseconds(), 3)}`;
 
-    // Guarantee uniqueness: if timestamp matches last one, increment by 1ms
-    if (ts <= this.lastTs) {
-      const lastMs = parseInt(this.lastTs.slice(-3), 10);
-      ts = this.lastTs.slice(0, -3) + pad(lastMs + 1, 3);
+    let ts: string;
+    const lastBaseTs = this.lastTs.split("_c")[0];
+    if (baseTs <= lastBaseTs) {
+      this.collisionCounter++;
+      ts = `${baseTs}_c${this.collisionCounter.toString().padStart(3, "0")}`;
+    } else {
+      this.collisionCounter = 0;
+      ts = baseTs;
     }
     this.lastTs = ts;
 

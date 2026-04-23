@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { FileManager } from "../src/services/file-manager.js";
 import { generateToc } from "../src/services/toc-generator.js";
 import { readFileSync, existsSync, rmSync } from "node:fs";
@@ -66,6 +66,35 @@ describe("FileManager", () => {
 
     it("does not throw on malformed percent-encoding in URL path", () => {
       expect(() => fm.generateFilename("https://example.com/%ZZ")).not.toThrow();
+    });
+
+    it("generates unique names when called 1500 times within same wall-clock ms", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-04-21T12:00:00.123Z"));
+      try {
+        const seen = new Set<string>();
+        for (let i = 0; i < 1500; i++) {
+          seen.add(fm.generateFilename("https://example.com"));
+        }
+        expect(seen.size).toBe(1500);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("uses plain timestamp (no _cNNN suffix) when calls span different ms", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-04-21T12:00:00.123Z"));
+      try {
+        const a = fm.generateFilename("https://example.com");
+        vi.setSystemTime(new Date("2026-04-21T12:00:00.124Z"));
+        const b = fm.generateFilename("https://example.com");
+        expect(a).not.toMatch(/_c\d{3}_/);
+        expect(b).not.toMatch(/_c\d{3}_/);
+        expect(a).not.toBe(b);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 
