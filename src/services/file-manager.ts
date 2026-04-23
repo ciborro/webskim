@@ -14,13 +14,15 @@ export class FileManager {
     const domain = parsed.hostname.replace(/\./g, "_");
 
     // Process pathname: strip leading slash, extension, and normalize
-    let path = parsed.pathname
-      .slice(1)  // remove leading /
-      .replace(/\.[^.]+$/, "")  // strip file extension
-      .replace(/\//g, "__");      // slashes to double underscores
+    let path = decodeURIComponent(parsed.pathname)
+      .slice(1)                                 // remove leading /
+      .replace(/\.[^.]+$/, "")                  // strip file extension
+      .replace(/[<>:"|?*\x00-\x1f]/g, "_")      // Windows-reserved BEFORE slash replace
+      .replace(/\//g, "__");                    // slashes → __ separator (preserved)
 
-    // Remove trailing underscores
-    path = path.replace(/_+$/, "");
+    const MAX_SLUG = 150;
+    if (path.length > MAX_SLUG) path = path.slice(0, MAX_SLUG);
+    path = path.replace(/^_+|_+$/g, "");        // trim AFTER truncation
 
     const now = new Date();
     const pad = (n: number, len = 2) => String(n).padStart(len, "0");

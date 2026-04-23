@@ -41,6 +41,28 @@ describe("FileManager", () => {
       const name2 = fm.generateFilename("https://example.com/page");
       expect(name1).not.toBe(name2);
     });
+
+    it("preserves __ slash separator convention (no underscore collapse)", () => {
+      const name = fm.generateFilename("https://docs.python.org/3/tutorial/classes.html");
+      expect(name).toMatch(/_docs_python_org__3__tutorial__classes\.md$/);
+    });
+
+    it("strips Windows-reserved characters from filename", () => {
+      const name = fm.generateFilename("https://example.com/path/x:y*z");
+      expect(name).not.toMatch(/[<>:"|?*\x00-\x1f]/);
+      expect(name).toMatch(/_example_com__path__x_y_z\.md$/);
+    });
+
+    it("preserves Unicode characters in path", () => {
+      const name = fm.generateFilename("https://example.com/主页");
+      expect(name).toContain("example_com__主页");
+    });
+
+    it("caps slug length to 150 chars", () => {
+      const longPath = "a".repeat(500);
+      const name = fm.generateFilename(`https://example.com/${longPath}`);
+      expect(name.length).toBeLessThanOrEqual(200);
+    });
   });
 
   describe("savePage", () => {
