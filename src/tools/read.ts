@@ -29,7 +29,8 @@ export function registerReadTool(server: McpServer, client: JinaClient, fileMana
         // 3. Generate TOC and count lines/estimate tokens
         const toc = generateToc(fullContent);
         const totalLines = fullContent.split("\n").length;
-        // Rough estimate: ~4 chars per token for English text
+        // estimatedTokens uses `content` (not `fullContent`) so the fixed Source-URL
+        // header doesn't inflate the estimate shown to the caller.
         const estimatedTokens = Math.round(content.length / 4);
 
         // 4. Return metadata
