@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { FileManager } from "../src/services/file-manager.js";
+import { generateToc } from "../src/services/toc-generator.js";
 import { readFileSync, existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
@@ -44,7 +45,7 @@ describe("FileManager", () => {
 
   describe("savePage", () => {
     it("saves content with source URL header", async () => {
-      const filePath = await fm.savePage("# Hello\n\nContent", "https://example.com/test");
+      const { filePath } = await fm.savePage("# Hello\n\nContent", "https://example.com/test");
 
       expect(existsSync(filePath)).toBe(true);
       const saved = readFileSync(filePath, "utf-8");
@@ -55,8 +56,23 @@ describe("FileManager", () => {
     });
 
     it("returns absolute path", async () => {
-      const filePath = await fm.savePage("content", "https://example.com");
+      const { filePath } = await fm.savePage("content", "https://example.com");
       expect(filePath).toMatch(/^\//);
+    });
+
+    it("returns fullContent equal to bytes written to disk", async () => {
+      const { filePath, fullContent } = await fm.savePage("a\nb\nc", "https://example.com");
+      const onDisk = readFileSync(filePath, "utf-8");
+      expect(fullContent).toBe(onDisk);
+    });
+
+    it("TOC computed from fullContent aligns with lines on disk (header accounted for)", async () => {
+      const { filePath, fullContent } = await fm.savePage("# H1\nTekst", "https://example.com");
+      const toc = generateToc(fullContent);
+      // File: L1 `<!-- Source: ... -->`, L2 empty, L3 `# H1`, L4 `Tekst`
+      expect(toc).toBe("L3: # H1");
+      const savedLines = readFileSync(filePath, "utf-8").split("\n");
+      expect(savedLines[2]).toBe("# H1"); // index 2 == L3
     });
   });
 });

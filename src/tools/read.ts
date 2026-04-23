@@ -24,11 +24,11 @@ export function registerReadTool(server: McpServer, client: JinaClient, fileMana
         });
 
         // 2. Save to disk
-        const filePath = await fileManager.savePage(content, url);
+        const { filePath, fullContent } = await fileManager.savePage(content, url);
 
         // 3. Generate TOC and count lines/estimate tokens
-        const toc = generateToc(content);
-        const totalLines = content.split("\n").length;
+        const toc = generateToc(fullContent);
+        const totalLines = fullContent.split("\n").length;
         // Rough estimate: ~4 chars per token for English text
         const estimatedTokens = Math.round(content.length / 4);
 

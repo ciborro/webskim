@@ -37,12 +37,13 @@ export class FileManager {
     return `${ts}_${slug}.md`;
   }
 
-  async savePage(content: string, url: string): Promise<string> {
+  async savePage(content: string, url: string): Promise<{ filePath: string; fullContent: string }> {
     await mkdir(this.baseDir, { recursive: true });
     const filename = this.generateFilename(url);
     const filePath = join(this.baseDir, filename);
     const header = `<!-- Source: ${url} -->\n\n`;
-    await writeFile(filePath, header + content, "utf-8");
-    return filePath;
+    const fullContent = header + content;
+    await writeFile(filePath, fullContent, "utf-8");
+    return { filePath, fullContent };
   }
 }
