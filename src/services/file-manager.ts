@@ -38,10 +38,12 @@ export class FileManager {
     const baseTs = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}${pad(now.getMilliseconds(), 3)}`;
 
     let ts: string;
+    // "_c" cannot appear in baseTs (digits + one underscore at pos 8), so split("_c")[0]
+    // safely recovers the plain base regardless of whether a suffix was appended previously.
     const lastBaseTs = this.lastTs.split("_c")[0];
     if (baseTs <= lastBaseTs) {
       this.collisionCounter++;
-      ts = `${baseTs}_c${this.collisionCounter.toString().padStart(3, "0")}`;
+      ts = `${baseTs}_c${this.collisionCounter.toString().padStart(4, "0")}`;
     } else {
       this.collisionCounter = 0;
       ts = baseTs;

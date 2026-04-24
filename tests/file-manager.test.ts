@@ -68,13 +68,15 @@ describe("FileManager", () => {
       expect(() => fm.generateFilename("https://example.com/%ZZ")).not.toThrow();
     });
 
-    it("generates unique names when called 1500 times within same wall-clock ms", () => {
+    it("generates unique names when called 1500 times within same wall-clock ms (all _cNNNN format)", () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date("2026-04-21T12:00:00.123Z"));
       try {
         const seen = new Set<string>();
         for (let i = 0; i < 1500; i++) {
-          seen.add(fm.generateFilename("https://example.com"));
+          const name = fm.generateFilename("https://example.com");
+          expect(name).toMatch(/^\d{8}_\d{9}(_c\d{4})?_/);
+          seen.add(name);
         }
         expect(seen.size).toBe(1500);
       } finally {
@@ -82,15 +84,15 @@ describe("FileManager", () => {
       }
     });
 
-    it("uses plain timestamp (no _cNNN suffix) when calls span different ms", () => {
+    it("uses plain timestamp (no _cNNNN suffix) when calls span different ms", () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date("2026-04-21T12:00:00.123Z"));
       try {
         const a = fm.generateFilename("https://example.com");
         vi.setSystemTime(new Date("2026-04-21T12:00:00.124Z"));
         const b = fm.generateFilename("https://example.com");
-        expect(a).not.toMatch(/_c\d{3}_/);
-        expect(b).not.toMatch(/_c\d{3}_/);
+        expect(a).not.toMatch(/_c\d{4}_/);
+        expect(b).not.toMatch(/_c\d{4}_/);
         expect(a).not.toBe(b);
       } finally {
         vi.useRealTimers();
