@@ -77,6 +77,7 @@ describe("JinaClient", () => {
     });
 
     it("aborts request after timeout", async () => {
+      const fastClient = new JinaClient("test-api-key", 50);
       mockFetch.mockImplementationOnce((_url: string, init: RequestInit) => {
         return new Promise((_resolve, reject) => {
           init.signal?.addEventListener("abort", () => {
@@ -84,9 +85,8 @@ describe("JinaClient", () => {
           });
         });
       });
-
-      await expect(client.search("test")).rejects.toThrow();
-    }, 35000);
+      await expect(fastClient.search("test")).rejects.toThrow();
+    });
   });
 
   describe("read", () => {

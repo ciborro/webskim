@@ -23,7 +23,12 @@ export interface ReadResult {
 
 export class JinaClient {
   private apiKey: string;
-  private readonly timeoutMs = 30000;
+  private readonly timeoutMs: number;
+
+  constructor(apiKey: string, timeoutMs: number = 30_000) {
+    this.apiKey = apiKey;
+    this.timeoutMs = timeoutMs;
+  }
 
   private fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
     const controller = new AbortController();
@@ -31,10 +36,6 @@ export class JinaClient {
     return fetch(url, { ...init, signal: controller.signal }).finally(() =>
       clearTimeout(timeout)
     );
-  }
-
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
   }
 
   async search(query: string, options: SearchOptions = {}): Promise<SearchResult[]> {
