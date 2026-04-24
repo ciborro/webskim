@@ -87,6 +87,14 @@ describe("JinaClient", () => {
       });
       await expect(fastClient.search("test")).rejects.toThrow();
     });
+
+    it("passes country as body.gl (lowercase), not X-Locale header", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ data: [] }) });
+      await client.search("test", { country: "PL" });
+      const callArgs = mockFetch.mock.calls[0];
+      expect(JSON.parse(callArgs[1].body)).toMatchObject({ q: "test", gl: "pl" });
+      expect(callArgs[1].headers).not.toHaveProperty("X-Locale");
+    });
   });
 
   describe("read", () => {

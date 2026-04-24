@@ -49,13 +49,12 @@ export class JinaClient {
     if (options.site) {
       headers["X-Site"] = options.site;
     }
-    if (options.country) {
-      headers["X-Locale"] = options.country;
-    }
-
     const body: Record<string, unknown> = { q: query };
     if (options.num_results) {
       body.num = options.num_results;
+    }
+    if (options.country) {
+      body.gl = options.country.toLowerCase();
     }
 
     const response = await this.fetchWithTimeout("https://s.jina.ai/", {
