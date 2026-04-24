@@ -19,7 +19,8 @@ const server = new McpServer({
 });
 
 const client = new JinaClient(JINA_API_KEY);
-const fileManager = new FileManager(join(process.cwd(), ".ai_pages"));
+const cacheDir = process.env.WEBSKIM_CACHE_DIR ?? join(process.cwd(), ".ai_pages");
+const fileManager = new FileManager(cacheDir);
 
 registerSearchTool(server, client);
 registerReadTool(server, client, fileManager);

@@ -143,6 +143,13 @@ Use WebSearch/WebFetch only as fallback when webskim tools are unavailable or fa
 
 Add `.ai_pages/` to your `.gitignore`.
 
+## Configuration
+
+| Env var | Required | Default | Description |
+|---------|----------|---------|-------------|
+| `JINA_API_KEY` | yes | — | Jina AI API key. Get one at https://jina.ai. |
+| `WEBSKIM_CACHE_DIR` | no | `<cwd>/.ai_pages` | Directory where `webskim_read` saves fetched pages. Created on demand. Useful for shared volumes or read-only CWDs. |
+
 ## Development
 
 ```bash
