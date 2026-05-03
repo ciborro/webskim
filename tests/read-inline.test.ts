@@ -1,5 +1,13 @@
-import { describe, it, expect } from "vitest";
-import { formatReadResponse, validateReadArgs } from "../src/tools/read.js";
+import { describe, it, expect, vi } from "vitest";
+import {
+  formatFileResponse,
+  formatInlineResponse,
+  validateReadArgs,
+  registerReadTool,
+} from "../src/tools/read.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { JinaClient } from "../src/services/jina-client.js";
+import type { FileManager } from "../src/services/file-manager.js";
 
 describe("validateReadArgs", () => {
   it("returns null when inline=false and head_lines is undefined (default file mode)", () => {
@@ -27,40 +35,35 @@ describe("validateReadArgs", () => {
   });
 });
 
-describe("formatReadResponse", () => {
-  // 10-line fullContent: line 1 is the Source header, line 2 is blank, lines 3..10 are body.
-  const fullContent =
-    "<!-- Source: https://example.com -->\n" +
-    "\n" +
-    "# Title\n" +
-    "para 1\n" +
-    "## Sub\n" +
-    "para 2\n" +
-    "para 3\n" +
-    "para 4\n" +
-    "para 5\n" +
-    "para 6";
-  // The pre-header content Jina returned (used for token estimate in file mode).
-  const content =
-    "# Title\n" +
-    "para 1\n" +
-    "## Sub\n" +
-    "para 2\n" +
-    "para 3\n" +
-    "para 4\n" +
-    "para 5\n" +
-    "para 6";
-  const filePath = "/tmp/.ai_pages/20260503_120000123_example_com.md";
-  const title = "Example";
+// 10-line fullContent shared across formatter tests:
+//   L1 = Source header, L2 = blank, L3..L10 = body.
+const fullContent =
+  "<!-- Source: https://example.com -->\n" +
+  "\n" +
+  "# Title\n" +
+  "para 1\n" +
+  "## Sub\n" +
+  "para 2\n" +
+  "para 3\n" +
+  "para 4\n" +
+  "para 5\n" +
+  "para 6";
+// Pre-header content Jina returned (used for token estimate in file mode).
+const content =
+  "# Title\n" +
+  "para 1\n" +
+  "## Sub\n" +
+  "para 2\n" +
+  "para 3\n" +
+  "para 4\n" +
+  "para 5\n" +
+  "para 6";
+const filePath = "/tmp/.ai_pages/20260503_120000123_example_com.md";
+const title = "Example";
 
-  it("file mode (inline=false): returns existing format with TOC and metadata", () => {
-    const out = formatReadResponse({
-      title,
-      content,
-      fullContent,
-      filePath,
-      inline: false,
-    });
+describe("formatFileResponse", () => {
+  it("returns existing format with TOC and metadata", () => {
+    const out = formatFileResponse({ title, content, fullContent, filePath });
     expect(out).toContain("**Example**");
     expect(out).toContain(`File: ${filePath}`);
     expect(out).toMatch(/Lines: 10 \| ~\d+ tokens \(estimate\)/);
@@ -71,22 +74,19 @@ describe("formatReadResponse", () => {
       "Use Read tool on the file path above to view content."
     );
   });
+});
 
-  it("inline truncated: head_lines=3 returns first 3 lines + footer", () => {
-    const out = formatReadResponse({
+describe("formatInlineResponse", () => {
+  it("truncated: head_lines=3 returns first 3 lines + footer", () => {
+    const out = formatInlineResponse({
       title,
-      content,
       fullContent,
       filePath,
-      inline: true,
       head_lines: 3,
     });
-    // Must start with title and contain the first 3 lines verbatim, in order.
     expect(out.startsWith("**Example**\n\n")).toBe(true);
-    const expectedSlice =
-      "<!-- Source: https://example.com -->\n\n# Title";
+    const expectedSlice = "<!-- Source: https://example.com -->\n\n# Title";
     expect(out).toContain(expectedSlice);
-    // Must end with footer pointing at the file.
     expect(out.trimEnd()).toMatch(
       /--- Showing 3\/10 lines\. Full file: .+example_com\.md$/
     );
@@ -94,42 +94,90 @@ describe("formatReadResponse", () => {
     expect(out).not.toContain("para 1");
   });
 
-  it("inline full (no head_lines): returns title + entire fullContent, no footer", () => {
-    const out = formatReadResponse({
-      title,
-      content,
-      fullContent,
-      filePath,
-      inline: true,
-    });
+  it("full (no head_lines): returns title + entire fullContent, no footer", () => {
+    const out = formatInlineResponse({ title, fullContent, filePath });
     expect(out).toBe(`**Example**\n\n${fullContent}`);
     expect(out).not.toMatch(/Showing \d+\/\d+ lines/);
-    expect(out).not.toContain("File:"); // path is intentionally omitted in Mode 3
+    expect(out).not.toContain("File:"); // path intentionally omitted in full mode
   });
 
-  it("inline unbounded: head_lines >= totalLines is treated as full (no footer)", () => {
-    const out = formatReadResponse({
+  it("unbounded: head_lines >= totalLines is treated as full (no footer)", () => {
+    const out = formatInlineResponse({
       title,
-      content,
       fullContent,
       filePath,
-      inline: true,
       head_lines: 999,
     });
     expect(out).toBe(`**Example**\n\n${fullContent}`);
     expect(out).not.toMatch(/Showing \d+\/\d+ lines/);
   });
 
-  it("inline truncated: head_lines exactly equal to totalLines emits no footer", () => {
-    const out = formatReadResponse({
+  it("head_lines exactly equal to totalLines emits no footer", () => {
+    const out = formatInlineResponse({
       title,
-      content,
       fullContent,
       filePath,
-      inline: true,
       head_lines: 10,
     });
     expect(out).toBe(`**Example**\n\n${fullContent}`);
     expect(out).not.toMatch(/Showing \d+\/\d+ lines/);
+  });
+});
+
+// Integration: register the tool against a fake McpServer that captures the
+// handler, then invoke the captured handler directly. Exercises the wiring
+// (envelope shape, dispatch) without booting MCP transport. Closes the gap
+// between the pure helpers above and the actual MCP contract clients see.
+describe("registerReadTool handler", () => {
+  type Handler = (args: Record<string, unknown>) => Promise<unknown>;
+
+  function captureHandler(client: JinaClient, fm: FileManager): Handler {
+    let captured: Handler | undefined;
+    const fakeServer = {
+      tool: (
+        _name: string,
+        _description: string,
+        _schema: unknown,
+        handler: Handler
+      ) => {
+        captured = handler;
+      },
+    } as unknown as McpServer;
+    registerReadTool(fakeServer, client, fm);
+    if (!captured) throw new Error("handler was not registered");
+    return captured;
+  }
+
+  it("emits isError envelope when head_lines is given without inline", async () => {
+    const handler = captureHandler({} as JinaClient, {} as FileManager);
+    const result = (await handler({
+      url: "https://example.com",
+      head_lines: 50,
+    })) as { isError?: boolean; content: Array<{ type: string; text: string }> };
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toBe(
+      "Validation error: head_lines requires inline: true"
+    );
+  });
+
+  it("returns formatted file-mode envelope on success", async () => {
+    const fakeClient = {
+      read: vi.fn().mockResolvedValue({ title: "Example", content }),
+    } as unknown as JinaClient;
+    const fakeFm = {
+      savePage: vi.fn().mockResolvedValue({ filePath, fullContent }),
+    } as unknown as FileManager;
+
+    const handler = captureHandler(fakeClient, fakeFm);
+    const result = (await handler({ url: "https://example.com" })) as {
+      isError?: boolean;
+      content: Array<{ type: string; text: string }>;
+    };
+
+    expect(result.isError).toBeUndefined();
+    expect(result.content[0].text).toContain("**Example**");
+    expect(result.content[0].text).toContain(`File: ${filePath}`);
+    expect(result.content[0].text).toContain("**Table of Contents:**");
   });
 });

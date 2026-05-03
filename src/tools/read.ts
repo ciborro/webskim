@@ -14,35 +14,37 @@ export function validateReadArgs(args: {
   return null;
 }
 
-export function formatReadResponse(params: {
+export function formatFileResponse(params: {
   title: string;
   content: string;
   fullContent: string;
   filePath: string;
-  inline: boolean;
+}): string {
+  const { title, content, fullContent, filePath } = params;
+  // Lines/TOC are computed from fullContent (with the Source header) so they
+  // match offsets a caller would later pass to Read tool. The token estimate
+  // uses pre-header content by design (see commit 9b45497) — do not unify.
+  const toc = generateToc(fullContent);
+  const totalLines = fullContent.split("\n").length;
+  const estimatedTokens = Math.round(content.length / 4);
+  return [
+    `**${title}**`,
+    `File: ${filePath}`,
+    `Lines: ${totalLines} | ~${estimatedTokens} tokens (estimate)`,
+    "",
+    toc ? `**Table of Contents:**\n${toc}` : "(no headings found)",
+    "",
+    "Use Read tool on the file path above to view content. Use offset/limit to read specific sections.",
+  ].join("\n");
+}
+
+export function formatInlineResponse(params: {
+  title: string;
+  fullContent: string;
+  filePath: string;
   head_lines?: number;
 }): string {
-  const { title, content, fullContent, filePath, inline, head_lines } = params;
-
-  if (!inline) {
-    // Lines/TOC are computed from fullContent (with the Source header) so they
-    // match offsets a caller would later pass to Read tool. The token estimate
-    // uses pre-header content by design (see commit 9b45497) — do not unify.
-    const toc = generateToc(fullContent);
-    const totalLines = fullContent.split("\n").length;
-    const estimatedTokens = Math.round(content.length / 4);
-    return [
-      `**${title}**`,
-      `File: ${filePath}`,
-      `Lines: ${totalLines} | ~${estimatedTokens} tokens (estimate)`,
-      "",
-      toc ? `**Table of Contents:**\n${toc}` : "(no headings found)",
-      "",
-      "Use Read tool on the file path above to view content. Use offset/limit to read specific sections.",
-    ].join("\n");
-  }
-
-  // inline mode
+  const { title, fullContent, filePath, head_lines } = params;
   const lines = fullContent.split("\n");
   const totalLines = lines.length;
   const cap =
@@ -93,15 +95,10 @@ export function registerReadTool(server: McpServer, client: JinaClient, fileMana
         // 2. Save to disk (unconditional — see spec decision Q1)
         const { filePath, fullContent } = await fileManager.savePage(content, url);
 
-        // 3. Format response
-        const text = formatReadResponse({
-          title,
-          content,
-          fullContent,
-          filePath,
-          inline: inlineFlag,
-          head_lines,
-        });
+        // 3. Format response — dispatch by mode so each helper takes only what it needs.
+        const text = inlineFlag
+          ? formatInlineResponse({ title, fullContent, filePath, head_lines })
+          : formatFileResponse({ title, content, fullContent, filePath });
 
         return {
           content: [{ type: "text" as const, text }],
