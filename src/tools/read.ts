@@ -4,6 +4,54 @@ import { JinaClient } from "../services/jina-client.js";
 import { FileManager } from "../services/file-manager.js";
 import { generateToc } from "../services/toc-generator.js";
 
+export function validateReadArgs(args: {
+  inline?: boolean;
+  head_lines?: number;
+}): string | null {
+  if (args.head_lines !== undefined && !args.inline) {
+    return "head_lines requires inline: true";
+  }
+  return null;
+}
+
+export function formatReadResponse(params: {
+  title: string;
+  content: string;
+  fullContent: string;
+  filePath: string;
+  inline: boolean;
+  head_lines?: number;
+}): string {
+  const { title, content, fullContent, filePath, inline, head_lines } = params;
+
+  if (!inline) {
+    const toc = generateToc(fullContent);
+    const totalLines = fullContent.split("\n").length;
+    const estimatedTokens = Math.round(content.length / 4);
+    return [
+      `**${title}**`,
+      `File: ${filePath}`,
+      `Lines: ${totalLines} | ~${estimatedTokens} tokens (estimate)`,
+      "",
+      toc ? `**Table of Contents:**\n${toc}` : "(no headings found)",
+      "",
+      "Use Read tool on the file path above to view content. Use offset/limit to read specific sections.",
+    ].join("\n");
+  }
+
+  // inline mode
+  const lines = fullContent.split("\n");
+  const totalLines = lines.length;
+  const cap =
+    head_lines !== undefined ? Math.min(head_lines, totalLines) : totalLines;
+  const visible = lines.slice(0, cap).join("\n");
+
+  if (cap >= totalLines) {
+    return `**${title}**\n\n${visible}`;
+  }
+  return `**${title}**\n\n${visible}\n\n--- Showing ${cap}/${totalLines} lines. Full file: ${filePath}`;
+}
+
 export function registerReadTool(server: McpServer, client: JinaClient, fileManager: FileManager) {
   server.tool(
     "webskim_read",
