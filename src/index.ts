@@ -15,7 +15,7 @@ if (!JINA_API_KEY) {
 
 const server = new McpServer({
   name: "webskim",
-  version: "1.4.0",
+  version: "1.4.1",
 });
 
 const client = new JinaClient(JINA_API_KEY);
