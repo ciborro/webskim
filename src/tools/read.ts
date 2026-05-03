@@ -55,14 +55,25 @@ export function formatReadResponse(params: {
 export function registerReadTool(server: McpServer, client: JinaClient, fileManager: FileManager) {
   server.tool(
     "webskim_read",
-    "Fetch URL/PDF → save as markdown to disk, return file path + TOC with line numbers. Near-zero context tokens. Use Read tool with offset/limit on the returned path to view specific sections.",
+    "Fetch URL/PDF → save as markdown to disk. Default: return file path + TOC with line numbers (near-zero context tokens; use Read tool with offset/limit on the path). Set inline: true to also receive the markdown directly in the response — combine with head_lines: N to cap to the first N lines and avoid blowing context on large pages.",
     {
       url: z.string().url().describe("URL of web page or PDF to read"),
       max_tokens: z.number().positive().optional().describe("Truncate content to this many tokens (saves context window)"),
       target_selector: z.string().optional().describe("CSS selector — extract only this element from the page"),
       remove_selector: z.string().optional().describe("CSS selector — remove these elements before extraction"),
+      inline: z.boolean().optional().default(false).describe("Return markdown content directly in the response instead of file path + TOC. File is still saved to disk."),
+      head_lines: z.number().int().positive().optional().describe("When inline=true, return only the first N lines (1-indexed, includes the Source header line). Requires inline=true."),
     },
-    async ({ url, max_tokens, target_selector, remove_selector }) => {
+    async ({ url, max_tokens, target_selector, remove_selector, inline, head_lines }) => {
+      // Cross-field validation that Zod rawShape can't express.
+      const validationError = validateReadArgs({ inline, head_lines });
+      if (validationError) {
+        return {
+          isError: true,
+          content: [{ type: "text" as const, text: `Validation error: ${validationError}` }],
+        };
+      }
+
       try {
         // 1. Fetch page content via Jina Reader
         const { title, content } = await client.read(url, {
@@ -71,29 +82,21 @@ export function registerReadTool(server: McpServer, client: JinaClient, fileMana
           max_tokens,
         });
 
-        // 2. Save to disk
+        // 2. Save to disk (unconditional — see spec decision Q1)
         const { filePath, fullContent } = await fileManager.savePage(content, url);
 
-        // 3. Generate TOC and count lines/estimate tokens
-        const toc = generateToc(fullContent);
-        const totalLines = fullContent.split("\n").length;
-        // estimatedTokens uses `content` (not `fullContent`) so the fixed Source-URL
-        // header doesn't inflate the estimate shown to the caller.
-        const estimatedTokens = Math.round(content.length / 4);
-
-        // 4. Return metadata
-        const response = [
-          `**${title}**`,
-          `File: ${filePath}`,
-          `Lines: ${totalLines} | ~${estimatedTokens} tokens (estimate)`,
-          "",
-          toc ? `**Table of Contents:**\n${toc}` : "(no headings found)",
-          "",
-          "Use Read tool on the file path above to view content. Use offset/limit to read specific sections.",
-        ].join("\n");
+        // 3. Format response
+        const text = formatReadResponse({
+          title,
+          content,
+          fullContent,
+          filePath,
+          inline: inline ?? false,
+          head_lines,
+        });
 
         return {
-          content: [{ type: "text" as const, text: response }],
+          content: [{ type: "text" as const, text }],
         };
       } catch (error) {
         return {
