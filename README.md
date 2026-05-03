@@ -107,6 +107,27 @@ No full pages in context. No wasted tokens. The agent decides what to read.
 | `max_tokens` | Server-side truncation (saves context) |
 | `target_selector` | CSS — extract only this element |
 | `remove_selector` | CSS — remove elements before extraction |
+| `inline` | `true` returns markdown directly in the response (default `false` → save-to-disk + TOC) |
+| `head_lines` | With `inline: true`, return only the first N lines and append a footer pointing at the saved file |
+
+#### Inline mode
+
+For small pages or "give me the top" lookups you can skip the follow-up `Read` call and get the markdown back directly. The page is still saved to disk so you can fall back to `Read(file, offset, limit)` if `head_lines` truncated.
+
+```
+Agent: webskim_read("https://example.com/short", inline=true)
+  → **Title**
+    <full markdown content>
+
+Agent: webskim_read("https://big-doc.com", inline=true, head_lines=80)
+  → **Title**
+    <first 80 lines>
+    --- Showing 80/420 lines. Full file: .ai_pages/..._big_doc_com.md
+
+# now decide whether to Read more from the file or move on
+```
+
+`head_lines` requires `inline: true` (otherwise the saved file would not match what was returned). Lines are 1-indexed and include the `<!-- Source: ... -->` header, so they line up with `Read tool` offsets.
 
 ## Why webskim?
 
