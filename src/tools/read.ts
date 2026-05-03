@@ -25,6 +25,9 @@ export function formatReadResponse(params: {
   const { title, content, fullContent, filePath, inline, head_lines } = params;
 
   if (!inline) {
+    // Lines/TOC are computed from fullContent (with the Source header) so they
+    // match offsets a caller would later pass to Read tool. The token estimate
+    // uses pre-header content by design (see commit 9b45497) — do not unify.
     const toc = generateToc(fullContent);
     const totalLines = fullContent.split("\n").length;
     const estimatedTokens = Math.round(content.length / 4);
@@ -65,8 +68,13 @@ export function registerReadTool(server: McpServer, client: JinaClient, fileMana
       head_lines: z.number().int().positive().optional().describe("When inline=true, return only the first N lines (1-indexed, includes the Source header line). Requires inline=true."),
     },
     async ({ url, max_tokens, target_selector, remove_selector, inline, head_lines }) => {
+      // Hoist once — Zod's .default(false) should make this `boolean`, but we
+      // belt-and-brace in case a future SDK version doesn't apply the default
+      // at the type level. Pass the same value to both helpers.
+      const inlineFlag = inline ?? false;
+
       // Cross-field validation that Zod rawShape can't express.
-      const validationError = validateReadArgs({ inline, head_lines });
+      const validationError = validateReadArgs({ inline: inlineFlag, head_lines });
       if (validationError) {
         return {
           isError: true,
@@ -91,7 +99,7 @@ export function registerReadTool(server: McpServer, client: JinaClient, fileMana
           content,
           fullContent,
           filePath,
-          inline: inline ?? false,
+          inline: inlineFlag,
           head_lines,
         });
 

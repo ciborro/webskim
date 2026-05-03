@@ -19,6 +19,12 @@ describe("validateReadArgs", () => {
       "head_lines requires inline: true"
     );
   });
+
+  it("returns error string when head_lines is given and inline is undefined", () => {
+    expect(validateReadArgs({ head_lines: 50 })).toBe(
+      "head_lines requires inline: true"
+    );
+  });
 });
 
 describe("formatReadResponse", () => {
