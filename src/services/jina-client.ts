@@ -14,6 +14,8 @@ export interface ReadOptions {
   target_selector?: string;
   remove_selector?: string;
   max_tokens?: number;
+  include_images?: boolean;
+  links?: "referenced" | "discarded" | "inline";
 }
 
 export interface ReadResult {
@@ -85,6 +87,15 @@ export class JinaClient {
       "Content-Type": "application/json",
       "X-Return-Format": "markdown",
     };
+
+    headers["X-Retain-Images"] = options.include_images ? "all" : "none";
+
+    const linksMode = options.links ?? "referenced";
+    if (linksMode === "referenced") {
+      headers["X-Md-Link-Style"] = "referenced";
+    } else if (linksMode === "discarded") {
+      headers["X-Md-Link-Style"] = "discarded";
+    }
 
     if (options.target_selector) {
       headers["X-Target-Selector"] = options.target_selector;

@@ -113,12 +113,12 @@ describe("JinaClient", () => {
 
       expect(mockFetch).toHaveBeenCalledWith("https://r.jina.ai/", expect.objectContaining({
         method: "POST",
-        headers: {
+        headers: expect.objectContaining({
           Authorization: "Bearer test-api-key",
           Accept: "application/json",
           "Content-Type": "application/json",
           "X-Return-Format": "markdown",
-        },
+        }),
         body: JSON.stringify({ url: "https://example.com" }),
       }));
       expect(result).toEqual({ title: "Example Page", content: "# Hello\n\nWorld" });
@@ -149,6 +149,50 @@ describe("JinaClient", () => {
       await expect(client.read("https://example.com")).rejects.toThrow(
         "Unexpected Jina Reader API response"
       );
+    });
+  });
+
+  describe("read defaults (Sprint 1)", () => {
+    it("sets X-Retain-Images: none and X-Md-Link-Style: referenced by default", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { title: "T", content: "C" } }),
+      });
+
+      await client.read("https://example.com/a");
+
+      const headers = mockFetch.mock.calls[0][1].headers;
+      expect(headers["X-Retain-Images"]).toBe("none");
+      expect(headers["X-Md-Link-Style"]).toBe("referenced");
+    });
+
+    it("sets X-Retain-Images: all when include_images=true", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { title: "T", content: "C" } }),
+      });
+
+      await client.read("https://example.com/a", { include_images: true });
+
+      expect(mockFetch.mock.calls[0][1].headers["X-Retain-Images"]).toBe("all");
+    });
+
+    it("sets X-Md-Link-Style: discarded when links=discarded", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { title: "T", content: "C" } }),
+      });
+      await client.read("https://example.com/a", { links: "discarded" });
+      expect(mockFetch.mock.calls[0][1].headers["X-Md-Link-Style"]).toBe("discarded");
+    });
+
+    it("omits X-Md-Link-Style when links=inline", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { title: "T", content: "C" } }),
+      });
+      await client.read("https://example.com/a", { links: "inline" });
+      expect(mockFetch.mock.calls[0][1].headers).not.toHaveProperty("X-Md-Link-Style");
     });
   });
 });
