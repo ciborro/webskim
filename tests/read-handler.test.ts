@@ -1,7 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { z } from "zod";
 import { JinaClient } from "../src/services/jina-client.js";
 import { FileManager } from "../src/services/file-manager.js";
-import { handleRead } from "../src/tools/read.js";
+import { handleRead, readToolSchema } from "../src/tools/read.js";
+
+describe("readToolSchema", () => {
+  it("readToolSchema applies defaults: include_images=false, links='referenced', inline=false", () => {
+    const schema = z.object(readToolSchema);
+    const parsed = schema.parse({ url: "https://example.com" });
+    expect(parsed.include_images).toBe(false);
+    expect(parsed.links).toBe("referenced");
+    expect(parsed.inline).toBe(false);
+  });
+});
 
 describe("handleRead", () => {
   let client: JinaClient;

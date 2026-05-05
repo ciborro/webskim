@@ -120,20 +120,26 @@ export async function handleRead(
   }
 }
 
+export const readToolSchema = {
+  url: z.string().url().describe("URL of web page or PDF to read"),
+  max_tokens: z.number().positive().optional().describe("Truncate content to this many tokens (saves context window)"),
+  target_selector: z.string().optional().describe("CSS selector — extract only this element from the page"),
+  remove_selector: z.string().optional().describe("CSS selector — remove these elements before extraction. Empty string '' opts out of the default chrome stripper."),
+  inline: z.boolean().optional().default(false).describe("Return markdown content directly in the response instead of file path + TOC. File is still saved to disk."),
+  head_lines: z.number().int().positive().optional().describe("When inline=true, return only the first N lines (1-indexed, includes the Source header line). Requires inline=true."),
+  include_images: z.boolean().optional().default(false).describe(
+    "Keep <img> tags in markdown. Default false saves ~30-70% tokens on news/blog pages."
+  ),
+  links: z.enum(["referenced", "discarded", "inline"]).optional().default("referenced").describe(
+    "How to render links. 'referenced' (default) = footer with [text][N]. 'discarded' = plain text only. 'inline' = full markdown links."
+  ),
+} as const;
+
 export function registerReadTool(server: McpServer, client: JinaClient, fileManager: FileManager) {
   server.tool(
     "webskim_read",
-    "Fetch URL/PDF → save as markdown to disk. Default: return file path + TOC with line numbers (near-zero context tokens; use Read tool with offset/limit on the path). Set inline: true to also receive the markdown directly in the response — combine with head_lines: N to cap to the first N lines and avoid blowing context on large pages.",
-    {
-      url: z.string().url().describe("URL of web page or PDF to read"),
-      max_tokens: z.number().positive().optional().describe("Truncate content to this many tokens (saves context window)"),
-      target_selector: z.string().optional().describe("CSS selector — extract only this element from the page"),
-      remove_selector: z.string().optional().describe("CSS selector — remove these elements before extraction"),
-      include_images: z.boolean().optional().describe("Include images in the extracted content"),
-      links: z.enum(["referenced", "discarded", "inline"]).optional().describe("How to handle links in the extracted content"),
-      inline: z.boolean().optional().default(false).describe("Return markdown content directly in the response instead of file path + TOC. File is still saved to disk."),
-      head_lines: z.number().int().positive().optional().describe("When inline=true, return only the first N lines (1-indexed, includes the Source header line). Requires inline=true."),
-    },
+    "Fetch URL/PDF → save as markdown to disk. Default: file path + TOC (near-zero context). Set inline:true + head_lines:N to receive markdown directly. Defaults are LLM-friendly: images stripped (include_images:true to keep), links rendered as footer references (links:'inline' to keep inline), site chrome (nav/footer/aside/ads) removed (override via remove_selector).",
+    readToolSchema,
     async (args) => handleRead(args, { client, fileManager })
   );
 }
