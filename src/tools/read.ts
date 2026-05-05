@@ -57,6 +57,69 @@ export function formatInlineResponse(params: {
   return `**${title}**\n\n${visible}\n\n--- Showing ${cap}/${totalLines} lines. Full file: ${filePath}`;
 }
 
+export interface HandleReadArgs {
+  url: string;
+  max_tokens?: number;
+  target_selector?: string;
+  remove_selector?: string;
+  include_images?: boolean;
+  links?: "referenced" | "discarded" | "inline";
+  inline?: boolean;
+  head_lines?: number;
+}
+
+export interface HandleReadDeps {
+  client: JinaClient;
+  fileManager: FileManager;
+}
+
+export async function handleRead(
+  args: HandleReadArgs,
+  deps: HandleReadDeps
+): Promise<{ isError?: boolean; content: { type: "text"; text: string }[] }> {
+  const { client, fileManager } = deps;
+  const inlineFlag = args.inline ?? false;
+
+  const validationError = validateReadArgs({
+    inline: inlineFlag,
+    head_lines: args.head_lines,
+  });
+  if (validationError) {
+    return {
+      isError: true,
+      content: [{ type: "text", text: `Validation error: ${validationError}` }],
+    };
+  }
+
+  try {
+    const { title, content } = await client.read(args.url, {
+      target_selector: args.target_selector,
+      remove_selector: args.remove_selector,
+      max_tokens: args.max_tokens,
+      include_images: args.include_images,
+      links: args.links,
+    });
+
+    const { filePath, fullContent } = await fileManager.savePage(content, args.url);
+
+    const text = inlineFlag
+      ? formatInlineResponse({ title, fullContent, filePath, head_lines: args.head_lines })
+      : formatFileResponse({ title, content, fullContent, filePath });
+
+    return { content: [{ type: "text", text }] };
+  } catch (error) {
+    return {
+      isError: true,
+      content: [
+        {
+          type: "text",
+          text: `Failed to read URL: ${error instanceof Error ? error.message : String(error)}`,
+        },
+      ],
+    };
+  }
+}
+
 export function registerReadTool(server: McpServer, client: JinaClient, fileManager: FileManager) {
   server.tool(
     "webskim_read",
@@ -66,54 +129,11 @@ export function registerReadTool(server: McpServer, client: JinaClient, fileMana
       max_tokens: z.number().positive().optional().describe("Truncate content to this many tokens (saves context window)"),
       target_selector: z.string().optional().describe("CSS selector — extract only this element from the page"),
       remove_selector: z.string().optional().describe("CSS selector — remove these elements before extraction"),
+      include_images: z.boolean().optional().describe("Include images in the extracted content"),
+      links: z.enum(["referenced", "discarded", "inline"]).optional().describe("How to handle links in the extracted content"),
       inline: z.boolean().optional().default(false).describe("Return markdown content directly in the response instead of file path + TOC. File is still saved to disk."),
       head_lines: z.number().int().positive().optional().describe("When inline=true, return only the first N lines (1-indexed, includes the Source header line). Requires inline=true."),
     },
-    async ({ url, max_tokens, target_selector, remove_selector, inline, head_lines }) => {
-      // Hoist once — Zod's .default(false) should make this `boolean`, but we
-      // belt-and-brace in case a future SDK version doesn't apply the default
-      // at the type level. Pass the same value to both helpers.
-      const inlineFlag = inline ?? false;
-
-      // Cross-field validation that Zod rawShape can't express.
-      const validationError = validateReadArgs({ inline: inlineFlag, head_lines });
-      if (validationError) {
-        return {
-          isError: true,
-          content: [{ type: "text" as const, text: `Validation error: ${validationError}` }],
-        };
-      }
-
-      try {
-        // 1. Fetch page content via Jina Reader
-        const { title, content } = await client.read(url, {
-          target_selector,
-          remove_selector,
-          max_tokens,
-        });
-
-        // 2. Save to disk (unconditional — see spec decision Q1)
-        const { filePath, fullContent } = await fileManager.savePage(content, url);
-
-        // 3. Format response — dispatch by mode so each helper takes only what it needs.
-        const text = inlineFlag
-          ? formatInlineResponse({ title, fullContent, filePath, head_lines })
-          : formatFileResponse({ title, content, fullContent, filePath });
-
-        return {
-          content: [{ type: "text" as const, text }],
-        };
-      } catch (error) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: "text" as const,
-              text: `Failed to read URL: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
-      }
-    }
+    async (args) => handleRead(args, { client, fileManager })
   );
 }
