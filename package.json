@@ -1,6 +1,6 @@
 {
   "name": "webskim",
-  "version": "1.4.2",
+  "version": "1.5.0",
   "description": "Context-efficient web search and reading for AI agents. MCP server powered by Jina AI.",
   "type": "module",
   "main": "dist/index.js",

@@ -98,17 +98,22 @@ No full pages in context. No wasted tokens. The agent decides what to read.
 | `num_results` | 1–10 (default 5) |
 | `site` | Restrict to domain, e.g. `"python.org"` |
 | `country` | Locale code, e.g. `"US"`, `"PL"` |
+| `format` | Default `markdown`. `json` returns `{results:[{i,title,url,snippet,host}]}` (preferred for weak models) |
 
 ### webskim_read
 
 | Param | Description |
 |-------|-------------|
 | `url` | Page or PDF URL |
-| `max_tokens` | Server-side truncation (saves context) |
+| `inline` | `true` returns markdown directly (default `false` → file path + TOC) |
+| `head_lines` | With `inline: true`, return only the first N lines |
 | `target_selector` | CSS — extract only this element |
-| `remove_selector` | CSS — remove elements before extraction |
-| `inline` | `true` returns markdown directly in the response (default `false` → save-to-disk + TOC) |
-| `head_lines` | With `inline: true`, return only the first N lines and append a footer pointing at the saved file |
+| `remove_selector` | CSS — drop these elements (overrides default chrome stripper). Empty string `""` opts out of the default. |
+| `include_images` | Default `false`. Keep `<img>` tags. Default off saves 30–70% tokens on news pages. |
+| `links` | Default `referenced`. How to render links: `referenced` = footer notation, `discarded` = plain text, `inline` = full markdown |
+| `max_tokens` | Server-side truncation (saves context) |
+
+**Defaults note:** webskim removes site chrome (nav/footer/aside/ads/cookie banners) before extraction. Override with explicit `remove_selector` if your target selector is e.g. `aside.article-content`.
 
 #### Inline mode
 
