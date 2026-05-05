@@ -41,6 +41,35 @@ export const DEFAULT_REMOVE_SELECTOR = [
   'section[aria-label*="reklama"]',
 ].join(", ");
 
+export function readerErrorMessage(status: number, statusText: string): string {
+  const base = `Jina Reader API error: ${status} ${statusText}`;
+  switch (status) {
+    case 422:
+      return `${base} — page likely empty/blocked or invalid selector. Try: 1) different URL from search results, 2) remove target_selector if set, 3) shorter URL.`;
+    case 403:
+    case 401:
+      return `${base} — blocked by site (antibot, login wall, or paywall). Try a different source URL or verify URL is publicly accessible.`;
+    case 404:
+      return `${base} — URL not found. Verify URL exists; try a search.`;
+    case 429:
+      return `${base} — rate limited. Wait a few seconds before retrying.`;
+    case 500:
+    case 502:
+    case 503:
+    case 504:
+      return `${base} — Jina/upstream error. Retry once; if still failing, try a different URL.`;
+    default:
+      return base;
+  }
+}
+
+export function searchErrorMessage(status: number, statusText: string): string {
+  const base = `Jina Search API error: ${status} ${statusText}`;
+  if (status === 429) return `${base} — rate limited. Wait a few seconds before retrying.`;
+  if (status >= 500) return `${base} — Jina/upstream error. Retry once.`;
+  return base;
+}
+
 export class JinaClient {
   private apiKey: string;
   private readonly timeoutMs: number;
@@ -50,12 +79,21 @@ export class JinaClient {
     this.timeoutMs = timeoutMs;
   }
 
-  private fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  private async fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
-    return fetch(url, { ...init, signal: controller.signal }).finally(() =>
-      clearTimeout(timeout)
-    );
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") {
+        throw new Error(
+          `Request timeout after ${this.timeoutMs}ms — page took too long to load. Try a different URL.`
+        );
+      }
+      throw e;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   async search(query: string, options: SearchOptions = {}): Promise<SearchResult[]> {
@@ -84,7 +122,7 @@ export class JinaClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Jina Search API error: ${response.status} ${response.statusText}`);
+      throw new Error(searchErrorMessage(response.status, response.statusText));
     }
 
     const json = await response.json();
@@ -135,7 +173,7 @@ export class JinaClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Jina Reader API error: ${response.status} ${response.statusText}`);
+      throw new Error(readerErrorMessage(response.status, response.statusText));
     }
 
     const json = await response.json();

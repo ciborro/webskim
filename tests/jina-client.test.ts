@@ -230,4 +230,72 @@ describe("JinaClient", () => {
       expect(mockFetch.mock.calls[0][1].headers).not.toHaveProperty("X-Remove-Selector");
     });
   });
+
+  describe("error hints (Sprint 1)", () => {
+    it("422 from reader → hint about empty page or invalid selector", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 422,
+        statusText: "Unprocessable Entity",
+      });
+      await expect(client.read("https://x")).rejects.toThrow(/422/);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 422,
+        statusText: "Unprocessable Entity",
+      });
+      await expect(client.read("https://x")).rejects.toThrow(
+        /page likely empty.*or invalid selector/i
+      );
+    });
+
+    it("403 from reader → hint about antibot / login wall", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        statusText: "Forbidden",
+      });
+      await expect(client.read("https://x")).rejects.toThrow(
+        /blocked by site|antibot|login wall/i
+      );
+    });
+
+    it("429 → hint about rate limit and retry", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+      });
+      await expect(client.read("https://x")).rejects.toThrow(/rate limited/i);
+    });
+
+    it("timeout (AbortError) → hint about timeout + retry", async () => {
+      const abortErr = new Error("aborted");
+      abortErr.name = "AbortError";
+      mockFetch.mockRejectedValueOnce(abortErr);
+
+      await expect(client.read("https://x")).rejects.toThrow(/timeout/i);
+    });
+  });
+
+  describe("search error hints (Sprint 1)", () => {
+    it("429 from search → rate-limited hint", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+      });
+      await expect(client.search("x")).rejects.toThrow(/rate limited/i);
+    });
+
+    it("500 from search → upstream error hint", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+      });
+      await expect(client.search("x")).rejects.toThrow(/upstream|retry/i);
+    });
+  });
 });
