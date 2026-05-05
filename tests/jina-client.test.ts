@@ -195,4 +195,39 @@ describe("JinaClient", () => {
       expect(mockFetch.mock.calls[0][1].headers).not.toHaveProperty("X-Md-Link-Style");
     });
   });
+
+  describe("default remove selector (Sprint 1)", () => {
+    it("uses default X-Remove-Selector when none provided", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { title: "T", content: "C" } }),
+      });
+      await client.read("https://example.com/a");
+
+      const v = mockFetch.mock.calls[0][1].headers["X-Remove-Selector"];
+      expect(v).toContain("nav");
+      expect(v).toContain("footer");
+      expect(v).toContain("aside");
+      expect(v).toContain("[role=banner]");
+      expect(v).toContain('[class*="newsletter"]');
+    });
+
+    it("respects user-provided remove_selector (override default)", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { title: "T", content: "C" } }),
+      });
+      await client.read("https://example.com/a", { remove_selector: ".only-this" });
+      expect(mockFetch.mock.calls[0][1].headers["X-Remove-Selector"]).toBe(".only-this");
+    });
+
+    it("treats remove_selector='' (empty string) as escape hatch — omits header entirely", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { title: "T", content: "C" } }),
+      });
+      await client.read("https://example.com/a", { remove_selector: "" });
+      expect(mockFetch.mock.calls[0][1].headers).not.toHaveProperty("X-Remove-Selector");
+    });
+  });
 });

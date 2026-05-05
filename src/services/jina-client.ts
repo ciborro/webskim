@@ -23,6 +23,24 @@ export interface ReadResult {
   content: string;
 }
 
+export const DEFAULT_REMOVE_SELECTOR = [
+  "nav",
+  "footer",
+  "aside",
+  "[role=banner]",
+  "[role=navigation]",
+  ".ad",
+  ".ads",
+  ".advertisement",
+  ".cookie-banner",
+  '[class*="newsletter"]',
+  '[class*="subscribe"]',
+  '[class*="paywall"]',
+  '[class*="related"]',
+  '[class*="recommended"]',
+  'section[aria-label*="reklama"]',
+].join(", ");
+
 export class JinaClient {
   private apiKey: string;
   private readonly timeoutMs: number;
@@ -100,9 +118,12 @@ export class JinaClient {
     if (options.target_selector) {
       headers["X-Target-Selector"] = options.target_selector;
     }
-    if (options.remove_selector) {
+    if (options.remove_selector === undefined) {
+      headers["X-Remove-Selector"] = DEFAULT_REMOVE_SELECTOR;
+    } else if (options.remove_selector !== "") {
       headers["X-Remove-Selector"] = options.remove_selector;
     }
+    // "" → header omitted (escape hatch)
     if (options.max_tokens) {
       headers["X-Token-Budget"] = String(options.max_tokens);
     }
