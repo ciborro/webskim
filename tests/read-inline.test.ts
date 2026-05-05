@@ -87,9 +87,9 @@ describe("formatInlineResponse", () => {
     expect(out.startsWith("**Example**\n\n")).toBe(true);
     const expectedSlice = "<!-- Source: https://example.com -->\n\n# Title";
     expect(out).toContain(expectedSlice);
-    expect(out.trimEnd()).toMatch(
-      /--- Showing 3\/10 lines\. Full file: .+example_com\.md$/
-    );
+    expect(out).toContain("--- Showing lines 1-3 of 10.");
+    expect(out).toContain("For more: increase head_lines, or call again with inline:false");
+    expect(out).toMatch(/Read tool with offset\/limit also works on file: .+example_com\.md/);
     // Body line 4 ("para 1") must NOT appear (it's after the cut).
     expect(out).not.toContain("para 1");
   });
@@ -122,6 +122,32 @@ describe("formatInlineResponse", () => {
     expect(out).toBe(`**Example**\n\n${fullContent}`);
     expect(out).not.toMatch(/Showing \d+\/\d+ lines/);
   });
+});
+
+it("truncation footer hints at next-step options", () => {
+  const fullContent = Array.from({ length: 100 }, (_, i) => `line ${i + 1}`).join("\n");
+  const result = formatInlineResponse({
+    title: "T",
+    fullContent,
+    filePath: "/tmp/p.md",
+    head_lines: 10,
+  });
+
+  expect(result).toContain("--- Showing lines 1-10 of 100");
+  expect(result).toContain("inline:false");
+  expect(result).toContain("Read tool");
+  expect(result).toContain("offset");
+  expect(result).toContain("/tmp/p.md");
+});
+
+it("no footer when content fits within head_lines", () => {
+  const result = formatInlineResponse({
+    title: "T",
+    fullContent: "line 1\nline 2",
+    filePath: "/tmp/p.md",
+    head_lines: 10,
+  });
+  expect(result).not.toContain("Showing lines");
 });
 
 // Integration: register the tool against a fake McpServer that captures the

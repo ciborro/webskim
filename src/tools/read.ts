@@ -54,7 +54,14 @@ export function formatInlineResponse(params: {
   if (cap >= totalLines) {
     return `**${title}**\n\n${visible}`;
   }
-  return `**${title}**\n\n${visible}\n\n--- Showing ${cap}/${totalLines} lines. Full file: ${filePath}`;
+
+  const footer = [
+    `--- Showing lines 1-${cap} of ${totalLines}.`,
+    `For more: increase head_lines, or call again with inline:false to get TOC + file path.`,
+    `Read tool with offset/limit also works on file: ${filePath}`,
+  ].join("\n");
+
+  return `**${title}**\n\n${visible}\n\n${footer}`;
 }
 
 export interface HandleReadArgs {
