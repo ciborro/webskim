@@ -129,10 +129,12 @@ export class JinaClient {
     if (!json.data || !Array.isArray(json.data)) {
       throw new Error(`Unexpected Jina Search API response: missing or invalid 'data' array`);
     }
-    return json.data.map((item: { title: string; url: string; description: string }) => ({
+    return json.data.map((item: { title: string; url: string; description?: string }) => ({
       title: item.title,
       url: item.url,
-      snippet: item.description,
+      // Jina omits description for some sources; coerce to "" so the search
+      // contract always carries a string snippet (never a dropped JSON key).
+      snippet: item.description ?? "",
     }));
   }
 

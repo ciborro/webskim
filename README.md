@@ -134,6 +134,54 @@ Agent: webskim_read("https://big-doc.com", inline=true, head_lines=80)
 
 `head_lines` requires `inline: true` (otherwise the saved file would not match what was returned). Lines are 1-indexed and include the `<!-- Source: ... -->` header, so they line up with `Read tool` offsets.
 
+## Output Contract
+
+Stable, versioned shape of what each tool returns. Consumers (gateways, weak models) should rely on these guarantees rather than re-parsing free text.
+
+### webskim_search
+
+- **`format: "json"`** (preferred for programmatic consumers) — a single text block containing **valid JSON** with this exact schema:
+
+  ```json
+  {
+    "results": [
+      { "i": 1, "title": "string", "url": "string", "snippet": "string", "host": "string" }
+    ]
+  }
+  ```
+
+  Field semantics:
+  - `i` — 1-based result index.
+  - `title`, `url` — as returned by the source.
+  - `snippet` — source description; **always a string**, `""` when the source provides none (the key is never omitted).
+  - `host` — hostname parsed from `url` (`""` if `url` is unparseable).
+  - No hits → `{ "results": [] }`.
+
+- **`format: "markdown"`** (default) — compact text, one result per block: `[i] title` / `url` / `snippet`. Intended for direct human/agent reading, not machine parsing. No hits → the literal string `No results found.`
+
+### webskim_read
+
+Default mode (`inline: false`) returns a text block:
+
+```
+**<title>**
+File: <path>
+Lines: <n> | ~<tokens> tokens (estimate)
+
+**Table of Contents:**
+L<n>: <heading>
+...
+
+Use Read tool on the file path above to view content. ...
+```
+
+- **`File:` path** — relative to the current working directory when the cache lives under cwd (the default `<cwd>/.ai_pages`), so the response never leaks an absolute home path a sandboxed client may not share. When `WEBSKIM_CACHE_DIR` points outside cwd, the absolute path is returned (the client configured that location). The path is always resolvable by the client's `Read` tool.
+- **`inline: true`** returns the markdown content directly; with `head_lines: N` it is truncated to the first N lines plus a footer pointing at the saved file (same path rules as above).
+
+### Versioning
+
+The output contract follows the package version (semver). Current: **1.6.0**. Schema-affecting changes bump the minor version and are noted here.
+
 ## Why webskim?
 
 **Context efficiency** — pages saved to `.ai_pages/` on disk, not dumped into context. Agent reads sections via offset/limit.

@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { JinaClient } from "../services/jina-client.js";
 import { FileManager } from "../services/file-manager.js";
 import { generateToc } from "../services/toc-generator.js";
+import { toDisplayPath } from "../services/display-path.js";
 
 export function validateReadArgs(args: {
   inline?: boolean;
@@ -108,10 +109,14 @@ export async function handleRead(
     });
 
     const { filePath, fullContent } = await fileManager.savePage(content, args.url);
+    // Relativize the on-disk path to cwd when the cache lives under cwd (the
+    // default), so the response never leaks an absolute home path the client's
+    // sandbox may not share. Paths outside cwd stay absolute. See toDisplayPath.
+    const displayPath = toDisplayPath(filePath, process.cwd());
 
     const text = inlineFlag
-      ? formatInlineResponse({ title, fullContent, filePath, head_lines: args.head_lines })
-      : formatFileResponse({ title, content, fullContent, filePath });
+      ? formatInlineResponse({ title, fullContent, filePath: displayPath, head_lines: args.head_lines })
+      : formatFileResponse({ title, content, fullContent, filePath: displayPath });
 
     return { content: [{ type: "text", text }] };
   } catch (error) {

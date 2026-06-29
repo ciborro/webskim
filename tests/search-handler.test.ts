@@ -39,6 +39,17 @@ describe("handleSearch", () => {
     });
   });
 
+  it("format='json' always includes a snippet field, even when empty", async () => {
+    (client.search as ReturnType<typeof vi.spyOn>).mockResolvedValueOnce([
+      { title: "No desc", url: "https://c.com/z", snippet: "" },
+    ]);
+    const result = await handleSearch({ query: "x", format: "json" }, client);
+    const parsed = JSON.parse(result.content[0].text);
+
+    expect(parsed.results[0]).toHaveProperty("snippet", "");
+    expect(Object.keys(parsed.results[0])).toContain("snippet");
+  });
+
   it("returns 'No results found.' when empty", async () => {
     (client.search as ReturnType<typeof vi.spyOn>).mockResolvedValueOnce([]);
     const result = await handleSearch({ query: "nothing" }, client);

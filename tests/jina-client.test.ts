@@ -43,6 +43,21 @@ describe("JinaClient", () => {
       ]);
     });
 
+    it("defaults a missing description to an empty-string snippet", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: [{ title: "No desc", url: "https://example.com" }],
+        }),
+      });
+
+      const results = await client.search("q");
+
+      expect(results).toEqual([
+        { title: "No desc", url: "https://example.com", snippet: "" },
+      ]);
+    });
+
     it("passes site filter as X-Site header", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,

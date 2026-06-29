@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { join } from "node:path";
 import { z } from "zod";
 import { JinaClient } from "../src/services/jina-client.js";
 import { FileManager } from "../src/services/file-manager.js";
@@ -49,5 +50,30 @@ describe("handleRead", () => {
       include_images: true,
       links: "discarded",
     });
+  });
+
+  it("relativizes a cache path under cwd in the output (no absolute leak)", async () => {
+    const abs = join(process.cwd(), ".ai_pages", "20260629_120000000_example_com.md");
+    vi.spyOn(fileManager, "savePage").mockResolvedValue({
+      filePath: abs,
+      fullContent: "<!-- Source: https://example.com -->\n\nC",
+    });
+
+    const result = await handleRead({ url: "https://example.com" }, { client, fileManager });
+    const text = result.content[0].text;
+
+    expect(text).toContain("File: .ai_pages/20260629_120000000_example_com.md");
+    expect(text).not.toContain(abs);
+  });
+
+  it("keeps an absolute cache path when it is outside cwd", async () => {
+    const abs = "/vol/shared/.ai_pages/20260629_120000000_example_com.md";
+    vi.spyOn(fileManager, "savePage").mockResolvedValue({
+      filePath: abs,
+      fullContent: "<!-- Source: https://example.com -->\n\nC",
+    });
+
+    const result = await handleRead({ url: "https://example.com" }, { client, fileManager });
+    expect(result.content[0].text).toContain(`File: ${abs}`);
   });
 });
