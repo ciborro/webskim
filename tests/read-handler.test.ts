@@ -97,4 +97,22 @@ describe("handleRead", () => {
     const result = await handleRead({ url: "https://example.com" }, { client, fileManager });
     expect(result.content[0].text).not.toContain("remove_selector: ''");
   });
+
+  it("no stripper hint when short content is explained by max_tokens", async () => {
+    vi.spyOn(client, "read").mockResolvedValue({ title: "T", content: "tiny" });
+    const result = await handleRead(
+      { url: "https://example.com", max_tokens: 100 },
+      { client, fileManager }
+    );
+    expect(result.content[0].text).not.toContain("remove_selector: ''");
+  });
+
+  it("no stripper hint when short content is explained by target_selector", async () => {
+    vi.spyOn(client, "read").mockResolvedValue({ title: "T", content: "tiny" });
+    const result = await handleRead(
+      { url: "https://example.com", target_selector: "article" },
+      { client, fileManager }
+    );
+    expect(result.content[0].text).not.toContain("remove_selector: ''");
+  });
 });
