@@ -320,5 +320,12 @@ describe("JinaClient", () => {
       });
       await expect(client.search("x")).rejects.toThrow(/upstream|retry/i);
     });
+
+    it("timeout message is endpoint-neutral (mentions URL or query, not just page)", async () => {
+      const abortErr = new Error("aborted");
+      abortErr.name = "AbortError";
+      mockFetch.mockRejectedValueOnce(abortErr);
+      await expect(client.search("x")).rejects.toThrow(/different URL or query/i);
+    });
   });
 });

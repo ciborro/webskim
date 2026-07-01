@@ -87,7 +87,7 @@ export class JinaClient {
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") {
         throw new Error(
-          `Request timeout after ${this.timeoutMs}ms — page took too long to load. Try a different URL.`
+          `Request timeout after ${this.timeoutMs}ms — upstream took too long. Retry once; if it persists, try a different URL or query.`
         );
       }
       throw e;
