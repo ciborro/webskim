@@ -31,9 +31,23 @@ describe("FileManager", () => {
       expect(name).toMatch(/^\d{8}_\d{9}_example_com.md$/);
     });
 
-    it("strips query parameters and fragments", () => {
+    it("encodes query string into slug, drops fragment", () => {
       const name = fm.generateFilename("https://example.com/page?q=test#section");
-      expect(name).toMatch(/^\d{8}_\d{9}_example_com__page.md$/);
+      expect(name).toMatch(/^\d{8}_\d{9}_example_com__page__q-test\.md$/);
+    });
+
+    it("distinguishes URLs differing only by query", () => {
+      const a = fm.generateFilename("https://example.com/pogoda?day=6");
+      const b = fm.generateFilename("https://example.com/pogoda?day=7");
+      expect(a).toMatch(/_example_com__pogoda__day-6\.md$/);
+      expect(b).toMatch(/_example_com__pogoda__day-7\.md$/);
+    });
+
+    it("caps very long query strings at 60 chars in the slug", () => {
+      const name = fm.generateFilename(`https://example.com/p?x=${"a".repeat(300)}`);
+      // slug part after "__" from query must be <= 60 chars
+      const queryPart = name.split("__").pop()!.replace(/\.md$/, "");
+      expect(queryPart.length).toBeLessThanOrEqual(60);
     });
 
     it("generates unique filenames for same URL called rapidly", () => {

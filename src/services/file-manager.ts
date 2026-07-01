@@ -29,6 +29,22 @@ export class FileManager {
       .replace(/[<>:"|?*\x00-\x1f]/g, "_")      // Windows-reserved BEFORE slash replace
       .replace(/\//g, "__");                    // slashes → __ separator (preserved)
 
+    // Query string distinguishes pages (?day=6 vs ?day=7); encode a sanitized,
+    // capped form into the slug. Fragments (#...) stay dropped — client-side only.
+    let rawQuery: string;
+    try {
+      rawQuery = decodeURIComponent(parsed.search);
+    } catch {
+      rawQuery = parsed.search;
+    }
+    let query = rawQuery
+      .slice(1)                                 // remove leading ?
+      .replace(/[^\p{L}\p{N}]+/gu, "-")         // anything non-alphanumeric → -
+      .replace(/^-+|-+$/g, "");
+    const MAX_QUERY = 60;
+    if (query.length > MAX_QUERY) query = query.slice(0, MAX_QUERY);
+    if (query) path = path ? `${path}__${query}` : query;
+
     const MAX_SLUG = 150;
     if (path.length > MAX_SLUG) path = path.slice(0, MAX_SLUG);
     path = path.replace(/^_+|_+$/g, "");        // trim AFTER truncation
