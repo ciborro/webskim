@@ -25,7 +25,7 @@ export class FileManager {
     }
     let path = rawPath
       .slice(1)                                 // remove leading /
-      .replace(/\.[^.]+$/, "")                  // strip file extension
+      .replace(/\.[^./]+$/, "")                 // strip file extension (never across /)
       .replace(/[<>:"|?*\x00-\x1f]/g, "_")      // Windows-reserved BEFORE slash replace
       .replace(/\//g, "__");                    // slashes → __ separator (preserved)
 

@@ -68,6 +68,17 @@ describe("FileManager", () => {
       expect(() => fm.generateFilename("https://example.com/%ZZ")).not.toThrow();
     });
 
+    it("does not eat path segments when a middle segment contains a dot", () => {
+      // Bug: /\.[^.]+$/ matched ".5/index" because [^.]+ spans slashes
+      const name = fm.generateFilename("https://example.com/releases/v2.5/index");
+      expect(name).toMatch(/_example_com__releases__v2\.5__index\.md$/);
+    });
+
+    it("still strips a real file extension on the last segment", () => {
+      const name = fm.generateFilename("https://example.com/docs/v1.2/page.html");
+      expect(name).toMatch(/_example_com__docs__v1\.2__page\.md$/);
+    });
+
     it("generates unique names when called 1500 times within same wall-clock ms (all _cNNNN format)", () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date("2026-04-21T12:00:00.123Z"));
