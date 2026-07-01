@@ -33,7 +33,7 @@ describe("JinaClient", () => {
           Authorization: "Bearer test-api-key",
           Accept: "application/json",
           "Content-Type": "application/json",
-          "X-Return-Format": "markdown",
+          "X-Respond-With": "no-content",
         },
         body: JSON.stringify({ q: "test query", num: 2 }),
       }));
@@ -109,6 +109,14 @@ describe("JinaClient", () => {
       const callArgs = mockFetch.mock.calls[0];
       expect(JSON.parse(callArgs[1].body)).toMatchObject({ q: "test", gl: "pl" });
       expect(callArgs[1].headers).not.toHaveProperty("X-Locale");
+    });
+
+    it("sends X-Respond-With: no-content and no X-Return-Format (search-only, no page fetching)", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ data: [] }) });
+      await client.search("test");
+      const headers = mockFetch.mock.calls[0][1].headers;
+      expect(headers["X-Respond-With"]).toBe("no-content");
+      expect(headers).not.toHaveProperty("X-Return-Format");
     });
   });
 

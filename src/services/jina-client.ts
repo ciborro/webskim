@@ -101,7 +101,9 @@ export class JinaClient {
       Authorization: `Bearer ${this.apiKey}`,
       Accept: "application/json",
       "Content-Type": "application/json",
-      "X-Return-Format": "markdown",
+      // Search-only: without this, s.jina.ai fetches full content of every hit
+      // (billed per token) which webskim discards — we only use title/url/description.
+      "X-Respond-With": "no-content",
     };
 
     if (options.site) {
