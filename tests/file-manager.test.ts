@@ -156,5 +156,22 @@ describe("FileManager", () => {
       const savedLines = readFileSync(filePath, "utf-8").split("\n");
       expect(savedLines[2]).toBe("# H1"); // index 2 == L3
     });
+
+    it("does not overwrite an existing file — retries with a regenerated name", async () => {
+      const spy = vi
+        .spyOn(fm, "generateFilename")
+        .mockReturnValueOnce("collision.md")
+        .mockReturnValueOnce("collision.md") // second savePage: first attempt collides
+        .mockReturnValueOnce("retry.md");    // second savePage: retry succeeds
+
+      const a = await fm.savePage("first", "https://example.com/a");
+      const b = await fm.savePage("second", "https://example.com/b");
+
+      expect(a.filePath).toMatch(/collision\.md$/);
+      expect(b.filePath).toMatch(/retry\.md$/);
+      expect(readFileSync(a.filePath, "utf-8")).toContain("first");
+      expect(readFileSync(b.filePath, "utf-8")).toContain("second");
+      spy.mockRestore();
+    });
   });
 });

@@ -72,11 +72,22 @@ export class FileManager {
 
   async savePage(content: string, url: string): Promise<{ filePath: string; fullContent: string }> {
     await mkdir(this.baseDir, { recursive: true });
-    const filename = this.generateFilename(url);
-    const filePath = join(this.baseDir, filename);
     const header = `<!-- Source: ${url} -->\n\n`;
     const fullContent = header + content;
-    await writeFile(filePath, fullContent, "utf-8");
-    return { filePath, fullContent };
+
+    // Collision counter is per-process; two servers sharing WEBSKIM_CACHE_DIR
+    // can generate the same name in the same ms. "wx" fails on existing file;
+    // retry regenerates a name (same-ms regeneration gets a _cNNNN suffix).
+    const MAX_ATTEMPTS = 5;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      const filePath = join(this.baseDir, this.generateFilename(url));
+      try {
+        await writeFile(filePath, fullContent, { encoding: "utf-8", flag: "wx" });
+        return { filePath, fullContent };
+      } catch (e) {
+        if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
+      }
+    }
+    throw new Error(`Could not create a unique cache file for ${url} after ${MAX_ATTEMPTS} attempts`);
   }
 }
