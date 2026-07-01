@@ -114,9 +114,20 @@ export async function handleRead(
     // sandbox may not share. Paths outside cwd stay absolute. See toDisplayPath.
     const displayPath = toDisplayPath(filePath, process.cwd());
 
-    const text = inlineFlag
+    let text = inlineFlag
       ? formatInlineResponse({ title, fullContent, filePath: displayPath, head_lines: args.head_lines })
       : formatFileResponse({ title, content, fullContent, filePath: displayPath });
+
+    // The default remove_selector uses substring class matches that can strip
+    // real content. When the result is suspiciously short and the default
+    // stripper was active, tell the agent how to opt out instead of letting it
+    // conclude the page is empty (weak models loop on "empty" pages).
+    const STRIPPER_HINT_THRESHOLD = 500;
+    if (args.remove_selector === undefined && content.length < STRIPPER_HINT_THRESHOLD) {
+      text +=
+        "\n\nNote: content is very short and the default chrome stripper was active. " +
+        "If this page seems empty, retry with remove_selector: '' to disable stripping.";
+    }
 
     return { content: [{ type: "text", text }] };
   } catch (error) {

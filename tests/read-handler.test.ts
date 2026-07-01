@@ -76,4 +76,25 @@ describe("handleRead", () => {
     const result = await handleRead({ url: "https://example.com" }, { client, fileManager });
     expect(result.content[0].text).toContain(`File: ${abs}`);
   });
+
+  it("appends a stripper hint when content is short and default remove_selector was active", async () => {
+    vi.spyOn(client, "read").mockResolvedValue({ title: "T", content: "tiny" });
+    const result = await handleRead({ url: "https://example.com" }, { client, fileManager });
+    expect(result.content[0].text).toContain("remove_selector: ''");
+  });
+
+  it("no stripper hint when caller set remove_selector explicitly", async () => {
+    vi.spyOn(client, "read").mockResolvedValue({ title: "T", content: "tiny" });
+    const result = await handleRead(
+      { url: "https://example.com", remove_selector: ".x" },
+      { client, fileManager }
+    );
+    expect(result.content[0].text).not.toContain("remove_selector: ''");
+  });
+
+  it("no stripper hint when content is long", async () => {
+    vi.spyOn(client, "read").mockResolvedValue({ title: "T", content: "x".repeat(600) });
+    const result = await handleRead({ url: "https://example.com" }, { client, fileManager });
+    expect(result.content[0].text).not.toContain("remove_selector: ''");
+  });
 });
