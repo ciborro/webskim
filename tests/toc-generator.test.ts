@@ -78,4 +78,38 @@ describe("generateToc", () => {
     expect(generateToc("    ## H")).toBe("");
     expect(generateToc("\t## H")).toBe("");
   });
+
+  it("recognizes fences indented 1-3 spaces", () => {
+    const markdown = [
+      "# Real",
+      "  ```",           // indented fence — must open a block
+      "# fake heading",
+      "  ```",
+      "## Also Real",
+    ].join("\n");
+    expect(generateToc(markdown)).toBe(["L1: # Real", "L5: ## Also Real"].join("\n"));
+  });
+
+  it("does not close a 4-backtick fence with a 3-backtick line", () => {
+    const markdown = [
+      "````",            // opens with 4 backticks
+      "```",             // example fence inside — must NOT close
+      "# fake heading",
+      "```",
+      "````",            // closes
+      "# Real",
+    ].join("\n");
+    expect(generateToc(markdown)).toBe("L6: # Real");
+  });
+
+  it("does not close a backtick fence with a tilde line (and vice versa)", () => {
+    const markdown = [
+      "```",
+      "~~~",             // different marker — must NOT close
+      "# fake heading",
+      "```",             // closes
+      "# Real",
+    ].join("\n");
+    expect(generateToc(markdown)).toBe("L5: # Real");
+  });
 });
