@@ -53,11 +53,21 @@ webskim uses [Jina AI](https://jina.ai) APIs under the hood — you need a **Jin
     "webskim": {
       "command": "npx",
       "args": ["-y", "webskim"],
-      "env": { "JINA_API_KEY": "jina_..." }
+      "env": {
+        "JINA_API_KEY": "jina_...",
+        "WEBSKIM_CACHE_DIR": "/Users/you/.webskim-pages"
+      }
     }
   }
 }
 ```
+
+> **Desktop notes:** Claude Desktop launches MCP servers with cwd `/`, so the
+> default cache dir (`<cwd>/.ai_pages`) is not writable — always set
+> `WEBSKIM_CACHE_DIR` to a writable absolute path. Claude Desktop also has no
+> `Read` tool, so use `inline: true` (optionally with `head_lines`) to get page
+> content back directly; the default file-path + TOC response is designed for
+> agentic clients like Claude Code.
 
 **Cursor / Windsurf / other MCP clients** — same pattern, point at `npx -y webskim` with `JINA_API_KEY` in env.
 
@@ -180,13 +190,18 @@ Use Read tool on the file path above to view content. ...
 
 ### Versioning
 
-The output contract follows the package version (semver). Current: **1.6.0**. Schema-affecting changes bump the minor version and are noted here.
+The output contract follows the package version (semver). Current: **1.7.0**. Schema-affecting changes bump the minor version and are noted here.
+
+1.7.0 changes:
+- `webskim_read` (both modes) may append a final `Note: content is very short and the default chrome stripper was active...` line when extracted content is under 500 chars and the default `remove_selector` was applied.
+- Cache filenames now encode a sanitized query string (`?day=6` → `..._pogoda__day-6.md`); fragments are still dropped.
+- `webskim_search` no longer fetches page content server-side (`X-Respond-With: no-content`) — same response shape, lower Jina credit usage and latency.
 
 ## Why webskim?
 
 **Context efficiency** — pages saved to `.ai_pages/` on disk, not dumped into context. Agent reads sections via offset/limit.
 
-**Tiny footprint** — ~230 tokens per tool definition in system prompt. Minimal overhead vs. built-in alternatives.
+**Tiny footprint** — two lean tool definitions in the system prompt. Minimal overhead vs. built-in alternatives.
 
 **Smart search** — returns snippets, not full pages. Agent picks which URLs are worth reading.
 

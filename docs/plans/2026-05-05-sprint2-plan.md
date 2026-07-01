@@ -1,6 +1,7 @@
 # Sprint 2 — Lokalny fallback Mozilla Readability
 
 **Status:** Draft
+**Uwaga (2026-07-01):** wersje przenumerowane 1.6.x → 1.8.x — 1.6.0 zostało wydane wcześniej z innym zakresem, 1.7.0 to release poprawek z review.
 **Source:** `webskim-feedback-2026-05-05.md` sekcja B1
 **Estimate:** 3–5 dni
 **Spec:** `docs/plans/2026-05-05-sprint2-spec.md`
@@ -53,8 +54,8 @@ Dlatego B1 to **try-first**, nie zamiennik. Jina pozostaje dla SPA / antibot / l
   ```
 - Nowe dependencies: `@mozilla/readability`, `linkedom`, `turndown` (wszystkie MIT, ~200kB razem).
 - Feature flag środowiskowy `WEBSKIM_READABILITY`:
-  - **Pierwszy release (1.6.0): opt-in** — `WEBSKIM_READABILITY === "1"` aktywuje ścieżkę. Brak zmiennej / inna wartość → wszystko idzie do Jiny (zero ryzyka regresji).
-  - **Po sanity benchmark + tygodniu obserwacji**: bumpa do 1.6.1 i zmiana semantyki na default-on (`WEBSKIM_READABILITY !== "0"`). Osobny PR.
+  - **Pierwszy release (1.8.0): opt-in** — `WEBSKIM_READABILITY === "1"` aktywuje ścieżkę. Brak zmiennej / inna wartość → wszystko idzie do Jiny (zero ryzyka regresji).
+  - **Po sanity benchmark + tygodniu obserwacji**: bumpa do 1.8.1 i zmiana semantyki na default-on (`WEBSKIM_READABILITY !== "0"`). Osobny PR.
 
 ## Poza scope
 
@@ -97,7 +98,7 @@ Dlatego B1 to **try-first**, nie zamiennik. Jina pozostaje dla SPA / antibot / l
 - `extracted_by` poprawnie sygnalizuje ścieżkę w 100% przypadków.
 - Kiedy Readability success — output markdown ma <30% długości znakowej obecnego (mniej szumu).
 - Existing API surface webskim_read niezmienione dla domyślnego callera (markdown response z file path + TOC).
-- Bumpnięta wersja do `1.6.0`.
+- Bumpnięta wersja do `1.8.0`.
 
 ## Ryzyka
 
@@ -112,8 +113,8 @@ Dlatego B1 to **try-first**, nie zamiennik. Jina pozostaje dla SPA / antibot / l
 1. **PR-1:** dependencies + `readability-extractor.ts` w izolacji + jednostkowe testy z fixturami HTML (TVN/Onet/Wikipedia/blog/SPA shell).
 2. **PR-2:** integracja w `read.ts` za feature-flagą env `WEBSKIM_READABILITY` (opt-in: `=== "1"` aktywuje ścieżkę).
 3. **PR-3:** `format: "json"` dla `webskim_read` (zwraca strukturę zawsze, niezależnie od ścieżki ekstrakcji — `extracted_by` informuje który silnik użyty); `extracted_by` także w markdown footer.
-4. **PR-4:** dokumentacja + bump 1.6.0.
-5. **PR-5 (osobny, po obserwacji):** flip default na default-on (`WEBSKIM_READABILITY !== "0"`) + bump 1.6.1.
+4. **PR-4:** dokumentacja + bump 1.8.0.
+5. **PR-5 (osobny, po obserwacji):** flip default na default-on (`WEBSKIM_READABILITY !== "0"`) + bump 1.8.1.
 
 ## Definition of Done
 
@@ -122,5 +123,5 @@ Dlatego B1 to **try-first**, nie zamiennik. Jina pozostaje dla SPA / antibot / l
 - [ ] `npm run build` bez błędów.
 - [ ] README pokazuje nowe parametry (`format: json`) i wyjaśnia ścieżki ekstrakcji.
 - [ ] Sanity benchmark (out of band): 5 URL-i, raport p50 latency + Readability hit rate.
-- [ ] Wersja bump'nięta na `1.6.0` w **trzech miejscach**: `package.json`, `package-lock.json`, `src/index.ts` (hardcoded w `new McpServer({ name, version })`).
-- [ ] Feature flag `WEBSKIM_READABILITY` udokumentowana (opt-in w 1.6.0; default-on w 1.6.1 po PR-5).
+- [ ] Wersja bump'nięta na `1.8.0` w `package.json` + `package-lock.json` (`src/index.ts` czyta wersję z `package.json` w runtime — nie wymaga edycji). Zaktualizować "Current" w sekcji Output Contract w README.
+- [ ] Feature flag `WEBSKIM_READABILITY` udokumentowana (opt-in w 1.8.0; default-on w 1.8.1 po PR-5).
