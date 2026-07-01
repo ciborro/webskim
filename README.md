@@ -213,7 +213,7 @@ The output contract follows the package version (semver). Current: **1.7.0**. Sc
 
 **Clean markdown** — no HTML soup, no boilerplate, just readable content.
 
-**Fast and cheap** — search ~2.5s, read ~8s. Jina API costs $0.02/1M tokens.
+**Fast and cheap** — search returns snippets only (no server-side page fetching since 1.7.0), read ~8s. Jina API costs $0.02/1M tokens.
 
 ## Make It the Default
 
